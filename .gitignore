@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+
+# venv
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 实验产物（不入版本控制；可用 make full 重新生成）
+results/figures/*.png
+results/checkpoints/*.pt
+results/tensorboard/
+results/*.pkl
+results/*.json
+
+# 数据缓存
+data/tle/*.tle
+data/topo_*.npz
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
