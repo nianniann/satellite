@@ -19,12 +19,9 @@ env/
 *.swp
 .DS_Store
 
-# 实验产物（不入版本控制；可用 make full 重新生成）
-results/figures/*.png
-results/checkpoints/*.pt
-results/tensorboard/
+# 实验产物：原始 pkl/log 太大或太杂,不入版本控制;
+# 图、ckpt、tensorboard、JSON 摘要会随实验报告一起入库,方便他人 review。
 results/*.pkl
-results/*.json
 results/*.log
 
 # 数据缓存
