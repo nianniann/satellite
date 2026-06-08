@@ -55,53 +55,47 @@ def altitude_to_mean_motion(altitude_km: float) -> float:
 
 
 def generate_constellation(num_gateways: int = 10,
-                           gateway_altitude_km: float = 1200.0,
-                           aos_altitude_km: float = 380.0,
+                           gateway_altitude_km: float = 550.0,
+                           aos_altitude_km: float = 400.0,
                            epoch_year: int = 2024,
                            epoch_day: float = 1.0,
                            seed: int = 0) -> str:
     """
     生成合成 TLE 字符串。返回多颗卫星的 TLE 拼接。
 
-    为获得丰富的相对运动 (handover 频繁)：
-      AOS 在极低 LEO（高度差大 → 周期差大 → 相对漂移快）
-      网关在较高 LEO，inclination/RAAN 分散覆盖
+    目标：30 分钟仿真窗口里产生 8-20 次切换机会。
+    设计：
+      - AOS 在 ~400km（类 ISS 高度）低 LEO，i=51.6°
+      - 网关在 ~550km（类 Starlink 一壳）LEO，i=53°
+      - 高度差 ~150km → AOS 比网关每圈快 ~3 分钟 → 相对漂移快
+      - 网关分布在 ``num_gateways`` 个不同 RAAN 上，使 AOS sweep 时依次进入视场
+      - 每个轨道面再放 1 颗相位错开的卫星，触发同面内的"换星"
     """
     lines = []
-    rng = np.random.default_rng(seed)
 
-    # 1) AOS 卫星：低 LEO、近极地
+    # 1) AOS 卫星：极地轨道，与 i=53° 的网关面有较大角差 → 持续穿越多个网关视场
     n_aos = altitude_to_mean_motion(aos_altitude_km)
     lines += ["AOS-SIM-1",
               _format_tle_line1(91001, epoch_year, epoch_day),
               _format_tle_line2(91001, inclination_deg=87.0,
-                                raan_deg=0.0, ecc=0.0001,
+                                raan_deg=45.0, ecc=0.0001,
                                 argp_deg=0.0, mean_anom_deg=0.0,
                                 mean_motion_revs_per_day=n_aos)]
 
-    # 2) IPv6 网关：较高 LEO，混合多个 inclination 与 RAAN
-    n_gw = altitude_to_mean_motion(gateway_altitude_km)
-    inclinations = [53.0, 75.0, 87.5]
-    # 把 num_gateways 划分到 (inclination × RAAN 网格)
-    per_inc = max(1, num_gateways // len(inclinations) + 1)
+    # 2) 网关：RAAN 等间距填满 360°
+    n_gw_rev = altitude_to_mean_motion(gateway_altitude_km)
     sat_id = 90001
-    count = 0
-    for inc in inclinations:
-        for k in range(per_inc):
-            if count >= num_gateways:
-                break
-            raan = (k * (360.0 / per_inc) + inc * 7.0) % 360.0
-            mean_anom = (k * 137.508 + inc * 13.0) % 360.0
-            lines += [f"IPV6-GW-{sat_id - 90000:02d}",
-                      _format_tle_line1(sat_id, epoch_year, epoch_day),
-                      _format_tle_line2(sat_id, inclination_deg=inc,
-                                        raan_deg=raan, ecc=0.0001,
-                                        argp_deg=0.0, mean_anom_deg=mean_anom,
-                                        mean_motion_revs_per_day=n_gw)]
-            sat_id += 1
-            count += 1
-        if count >= num_gateways:
-            break
+    for k in range(num_gateways):
+        raan = (k * (360.0 / num_gateways)) % 360.0
+        # 相邻 RAAN 上的卫星相位错开 180°/N，提高短期内的可见多样性
+        mean_anom = (k * (180.0 / max(1, num_gateways))) % 360.0
+        lines += [f"IPV6-GW-{sat_id - 90000:02d}",
+                  _format_tle_line1(sat_id, epoch_year, epoch_day),
+                  _format_tle_line2(sat_id, inclination_deg=53.0,
+                                    raan_deg=raan, ecc=0.0001,
+                                    argp_deg=0.0, mean_anom_deg=mean_anom,
+                                    mean_motion_revs_per_day=n_gw_rev)]
+        sat_id += 1
 
     return "\n".join(lines) + "\n"
 

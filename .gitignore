@@ -25,6 +25,7 @@ results/checkpoints/*.pt
 results/tensorboard/
 results/*.pkl
 results/*.json
+results/*.log
 
 # 数据缓存
 data/tle/*.tle

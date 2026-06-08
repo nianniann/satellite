@@ -456,7 +456,9 @@ class HandoffController:
                     new_dyn.queues[k] = q
             for k, frags in self.gateways[from_gw].tc.dynamic.frag_buffer.buf.items():
                 if k[1] <= 1 and frags and len(frags) / frags[0].frag_total >= 0.5:
-                    new_dyn.frag_buffer.buf[k] = frags
+                    new_dyn.frag_buffer.buf[k] = list(frags)
+                    if len(frags) == frags[0].frag_total:
+                        new_dyn.frag_buffer._complete_set.add(k)
             self.gateways[to_gw].tc.dynamic = new_dyn
         else:
             self.gateways[to_gw].tc.dynamic = DynamicContext()

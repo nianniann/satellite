@@ -28,17 +28,17 @@ SPEED_OF_LIGHT_KMS = 299792.458
 @dataclass
 class SimConfig:
     # 时间
-    sim_duration_sec: float = 1800.0          # 仿真总时长（30分钟，足够LEO切换多次）
+    sim_duration_sec: float = 3600.0          # 仿真总时长（60 分钟，足够 LEO 切换多次）
     decision_interval_sec: float = 1.0        # 决策时隙长度
-    expert_train_horizon_sec: float = 7200.0  # 离线生成专家轨迹的时长（2小时）
+    expert_train_horizon_sec: float = 7200.0  # 离线生成专家轨迹的时长（2 小时）
 
     # 几何
     min_elevation_deg: float = 10.0           # 最小通信仰角
-    isl_max_range_km: float = 5500.0          # 星间链路最大距离
+    isl_max_range_km: float = 3500.0          # 星间链路最大距离（限小 → 切换频繁）
 
     # 候选网关
-    num_candidate_gateways: int = 8           # 候选IPv6网关数量
-    num_aos_satellites: int = 1               # AOS卫星数量（单条业务流）
+    num_candidate_gateways: int = 16          # 候选 IPv6 网关数量
+    num_aos_satellites: int = 1               # AOS 卫星数量（单条业务流）
 
     # 报文/协议
     aos_frame_bytes: int = 256                # 一帧AOS长度
@@ -82,10 +82,16 @@ CFG = SimConfig()
 
 
 def get_device():
-    """优先选 MPS（Apple Silicon），其次 CUDA，否则 CPU。"""
+    """优先选 CUDA，其次 MPS，否则 CPU。
+
+    支持通过环境变量 ``SAT_GPU_INDEX`` 选择具体的 GPU 索引（默认 0），
+    这样在多卡机器上只占用一张 GPU。``CUDA_VISIBLE_DEVICES`` 也可单独控制。
+    """
     import torch
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
     if torch.cuda.is_available():
-        return torch.device("cuda")
+        idx = int(os.environ.get("SAT_GPU_INDEX", "0"))
+        idx = max(0, min(idx, torch.cuda.device_count() - 1))
+        return torch.device(f"cuda:{idx}")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
     return torch.device("cpu")

@@ -8,6 +8,9 @@
   - 卫星星历完全可预测，Lyapunov 求解器已能给出近最优解
   - DRL 训练不稳定、决策耗 GPU；模仿学习一次离线训练好，星上部署只需 <1ms 推理
   - 论文里可同时报告"Lyapunov 在线（理论最优）"与"IL 网络（部署友好）"
+
+训练默认在 ``config.get_device()`` 返回的 GPU（CUDA 优先）上跑；
+``optimizer/policy_net.py`` 与 ``baselines/pure_drl.py`` 共用同一份设备选择。
 """
 from __future__ import annotations
 
@@ -131,7 +134,8 @@ def train_il(ds: ILDataset, num_gateways: int,
     writer = SummaryWriter(log_dir=TB_DIR / tag)
     history = {"train_loss": [], "val_loss": [], "val_acc": []}
 
-    for ep in range(epochs):
+    pbar = tqdm(range(epochs), desc=f"IL[{tag}]", disable=not verbose)
+    for ep in pbar:
         model.train()
         loss_sum, n = 0.0, 0
         for xb, yb in train_loader:
@@ -164,9 +168,9 @@ def train_il(ds: ILDataset, num_gateways: int,
         writer.add_scalar("loss/train", tr_loss, ep)
         writer.add_scalar("loss/val", v_loss, ep)
         writer.add_scalar("acc/val", v_acc, ep)
-        if verbose:
-            print(f"[IL ep {ep:02d}] train_loss={tr_loss:.4f} "
-                  f"val_loss={v_loss:.4f} val_acc={v_acc:.4f}")
+        pbar.set_postfix(tr=f"{tr_loss:.4f}",
+                         val=f"{v_loss:.4f}",
+                         acc=f"{v_acc:.3f}")
 
     writer.close()
     ckpt_fp = CKPT_DIR / f"{tag}.pt"

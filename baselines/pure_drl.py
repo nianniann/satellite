@@ -98,7 +98,9 @@ def train_dqn(topos: list[TopologySnapshot], loads_list: list[np.ndarray],
     eps = eps_start
     history = []
 
-    for ep in range(epochs):
+    from tqdm import tqdm as _tqdm
+    pbar = _tqdm(range(epochs), desc=f"DQN[{tag}]", disable=not verbose)
+    for ep in pbar:
         ep_reward = 0.0
         for topo, loads in zip(topos, loads_list):
             cur_gw = int(np.argmax(topo.remaining_visibility(0))) if topo.remaining_visibility(0).max() > 0 else 0
@@ -136,8 +138,7 @@ def train_dqn(topos: list[TopologySnapshot], loads_list: list[np.ndarray],
             tgt.load_state_dict(q.state_dict())
         eps = max(eps_end, eps * eps_decay)
         history.append(ep_reward / max(1, sum(t.num_steps for t in topos)))
-        if verbose:
-            print(f"[DQN ep {ep:02d}] mean_reward={history[-1]:.4f} eps={eps:.3f}")
+        pbar.set_postfix(reward=f"{history[-1]:.4f}", eps=f"{eps:.3f}")
 
     ckpt_fp = CKPT_DIR / f"{tag}.pt"
     torch.save({"model_state": q.state_dict(),

@@ -200,10 +200,9 @@ def fig7_load_balance(data, fp: Path):
     plt.close()
 
 
-# --------------------------- 图8：综合指标对比 ---------------------------
+# --------------------------- 图8：综合指标对比（含 std 误差棒）---------------------------
 def fig8_summary_bars(data, fp: Path):
-    summaries = data["summaries"]
-    names = list(summaries.keys())
+    """支持 summary_agg（多种子 mean/std）；缺失时退回单种子 summaries。"""
     metrics = ["plr", "e2e_ms", "num_switches", "total_interrupt_sec"]
     metric_titles = {
         "plr": "Packet loss rate (%)",
@@ -211,18 +210,68 @@ def fig8_summary_bars(data, fp: Path):
         "num_switches": "Number of handoffs",
         "total_interrupt_sec": "Total interrupt (s)",
     }
+    agg = data.get("summary_agg")
+    if agg:
+        names = list(agg.keys())
+        get_mean = lambda n, m: agg[n][m]["mean"]
+        get_std = lambda n, m: agg[n][m]["std"]
+        title_suffix = f" (mean±std over {len(next(iter(agg.values()))['plr']['values'])} seeds)"
+    else:
+        summaries = data["summaries"]
+        names = list(summaries.keys())
+        get_mean = lambda n, m: summaries[n][m]
+        get_std = lambda n, m: 0.0
+        title_suffix = ""
+
     fig, axes = plt.subplots(1, 4, figsize=(16, 4))
     for ax, m in zip(axes, metrics):
-        vals = [summaries[n][m] * (100 if m == "plr" else 1) for n in names]
-        bars = ax.bar(range(len(names)), vals,
-                      color=[COLOR_MAP.get(n) for n in names])
-        ax.set_xticks(range(len(names)))
+        scale = 100 if m == "plr" else 1.0
+        means = [get_mean(n, m) * scale for n in names]
+        stds = [get_std(n, m) * scale for n in names]
+        x = np.arange(len(names))
+        bars = ax.bar(x, means, yerr=stds, capsize=4,
+                      color=[COLOR_MAP.get(n) for n in names],
+                      edgecolor="#222", linewidth=0.4)
+        ax.set_xticks(x)
         ax.set_xticklabels(names, rotation=30, ha="right")
         ax.set_title(metric_titles[m])
-        for b, v in zip(bars, vals):
+        for b, v in zip(bars, means):
             ax.text(b.get_x() + b.get_width() / 2, b.get_height(),
                     f"{v:.2f}", ha="center", va="bottom", fontsize=8)
-    fig.suptitle("Fig.8 Summary comparison across schemes")
+    fig.suptitle("Fig.8 Summary comparison across schemes" + title_suffix)
+    plt.savefig(fp)
+    plt.close()
+
+
+# --------------------------- 图9：IL 推理延迟基准 ---------------------------
+def fig9_inference_latency(data, fp: Path):
+    lat = data.get("inference_latency_ms")
+    fig, ax = plt.subplots(figsize=(5, 4))
+    if not lat:
+        ax.text(0.5, 0.5, "No latency benchmark recorded",
+                ha="center", va="center", transform=ax.transAxes)
+        ax.set_title("Fig.9 IL inference latency (GPU vs CPU)")
+        plt.savefig(fp); plt.close()
+        return
+    keys = list(lat.keys())
+    vals = [lat[k] for k in keys]
+    colors = {"gpu": "#228833", "cpu": "#888888"}
+    bars = ax.bar(keys, vals, color=[colors.get(k, "#4477AA") for k in keys])
+    ax.set_ylabel("Latency per inference (ms)")
+    ax.set_yscale("log")
+    for b, v in zip(bars, vals):
+        ax.text(b.get_x() + b.get_width() / 2, v,
+                f"{v:.3f} ms", ha="center", va="bottom", fontsize=10)
+    if "gpu" in lat and "cpu" in lat:
+        if lat["gpu"] < lat["cpu"]:
+            ax.set_title(f"Fig.9 IL inference latency — GPU "
+                         f"{lat['cpu'] / lat['gpu']:.2f}× faster")
+        else:
+            ax.set_title(f"Fig.9 IL inference latency — CPU "
+                         f"{lat['gpu'] / lat['cpu']:.2f}× faster (tiny net, "
+                         f"GPU launch dominates)")
+    else:
+        ax.set_title("Fig.9 IL inference latency")
     plt.savefig(fp)
     plt.close()
 
@@ -238,7 +287,8 @@ def main():
     fig6_migration_overhead(data, FIG_DIR / "fig6_migration_overhead.png")
     fig7_load_balance(data, FIG_DIR / "fig7_load_balance.png")
     fig8_summary_bars(data, FIG_DIR / "fig8_summary.png")
-    print(f"✅ 已生成 8 张图到 {FIG_DIR}")
+    fig9_inference_latency(data, FIG_DIR / "fig9_inference_latency.png")
+    print(f"✅ 已生成 9 张图到 {FIG_DIR}")
 
 
 if __name__ == "__main__":

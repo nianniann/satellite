@@ -58,24 +58,28 @@ class FragmentReassemblyBuffer:
     """
     分片重组缓存：(scid, vcid, ccsds_pkt_id) → [已收到的碎片]
     这是 VM Live Migration 里没有的协议级状态。
+
+    性能注意：``_complete_set`` 在 ``add()`` 时增量维护已完成包的 key 集合，
+    使 ``complete_packets()`` 从 O(buf 大小) 降到 O(完成集合大小)。
     """
     buf: dict[tuple[int, int, int], list[CCSDSFragment]] = field(default_factory=dict)
     last_update_sec: float = 0.0
+    _complete_set: set = field(default_factory=set)
 
     def add(self, scid: int, vcid: int, frag: CCSDSFragment, t_sec: float):
         key = (scid, vcid, frag.ccsds_pkt_id)
-        self.buf.setdefault(key, []).append(frag)
+        frags = self.buf.setdefault(key, [])
+        frags.append(frag)
+        if len(frags) == frags[0].frag_total:
+            self._complete_set.add(key)
         self.last_update_sec = t_sec
 
     def complete_packets(self) -> list[tuple]:
         """返回已收齐所有片的 CCSDS 包 key 列表。"""
-        done = []
-        for k, frags in self.buf.items():
-            if frags and len(frags) == frags[0].frag_total:
-                done.append(k)
-        return done
+        return list(self._complete_set)
 
     def pop_complete(self, key: tuple) -> list[CCSDSFragment]:
+        self._complete_set.discard(key)
         return self.buf.pop(key)
 
     def size_bytes(self) -> int:

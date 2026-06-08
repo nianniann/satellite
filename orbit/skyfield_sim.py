@@ -149,14 +149,24 @@ def build_scenario(num_gateways: int = None,
             s.role = "aos"
         return aos, gw
 
-    # 真实数据：Starlink 当网关，Iridium 当 AOS（轨道高度差异大，几何动态丰富）
+    # 真实数据：所有卫星均来自 Starlink，AOS 与网关都是星上节点（典型 LEO ISL 拓扑）
+    # 为保证可见性丰富，AOS 与网关都用 Starlink，但 AOS 取较前的卫星，
+    # 网关从全文件均匀抽样以覆盖不同轨道面。
     try:
         sl_fp = download_tle("starlink")
-        ir_fp = download_tle("iridium-next")
-        gw = load_satellites_from_file(sl_fp, limit=num_gateways, role="ipv6_gateway")
-        aos = load_satellites_from_file(ir_fp, limit=num_aos, role="aos")
-        if len(gw) < num_gateways or len(aos) < num_aos:
-            raise RuntimeError("TLE 数量不足")
+        all_sl = load_satellites_from_file(sl_fp, role="ipv6_gateway")
+        if len(all_sl) < num_gateways + num_aos:
+            raise RuntimeError("Starlink TLE 数量不足")
+        # 候选网关：从整个 Starlink TLE 等间距抽样，覆盖不同轨道面
+        stride_sl = max(1, len(all_sl) // num_gateways)
+        gw = [all_sl[i * stride_sl] for i in range(num_gateways)]
+        # AOS 卫星：选中间偏后的卫星，避免与网关重合
+        aos_start = len(all_sl) // 2
+        aos = []
+        for i in range(num_aos):
+            cand = all_sl[(aos_start + i * 17) % len(all_sl)]
+            cand = Satellite(name=f"AOS-{cand.name}", sat=cand.sat, role="aos")
+            aos.append(cand)
         return aos, gw
     except Exception as e:
         print(f"[orbit] 真实 TLE 加载失败 ({e})，切换到 fallback")
