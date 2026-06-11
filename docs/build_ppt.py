@@ -805,50 +805,50 @@ def slide_11():
             '· Pre-copy 在切换前 3 s 启动，与业务报文复用 ISL，开销几乎不可感知。',
             fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
 
-    # 右：两阶段迁移的设计要点 + 与硬切换对照
-    title_panel(ax, 51, 56, 46, 22,
+    # 右上：两阶段迁移的本质  (y=50..73，与顶部时序条留 4 单位空白)
+    title_panel(ax, 51, 50, 46, 23,
                 '两阶段迁移的本质：把“关键路径”尽可能缩短',
                 color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(52.5, 72.5,
-            '关键路径只剩 Stop-and-copy 一段；Pre-copy 与 $T_{\\mathrm{phys}}$\n'
-            '都不冻结业务，相当于把绝大部分迁移开销“提前到”切换之前完成，\n'
-            '从而把硬切换中断 0.3-1 s 压缩到 50 ms 量级。',
-            fontsize=9.8, color=DARK, va='top', linespacing=1.7, zorder=10)
-    ax.text(52.5, 60,
-            '工程关键点：\n'
-            '· $\\mathcal{C}_{\\mathrm{static}}$ 在 Pre-copy 期一次推完 (~288 B)；\n'
-            '· $\\Delta\\mathcal{C}_{\\mathrm{dyn}}$ 只传增量 (~几百字节)；\n'
-            '· 信令双向确认 $\\tau$ 取 30 ms。',
-            fontsize=9.5, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(52.5, 67.5,
+            '· Pre-copy 与 $T_{\\mathrm{phys}}$ 都不冻结业务；\n'
+            r'· 关键路径只剩 Stop-copy 一段 ($t_{\mathrm{stop}}$)；'
+            '\n'
+            r'· 把硬切换中断 0.3-1 s 压缩到约 50 ms 量级；'
+            '\n'
+            r'· $\mathcal{C}_{\mathrm{static}}\approx 288$ B 一次推完，'
+            r'$\Delta\mathcal{C}_{\mathrm{dyn}}$ 仅几百字节增量。',
+            fontsize=9.4, color=DARK, va='top', linespacing=1.75, zorder=10)
 
-    title_panel(ax, 51, 30, 46, 24,
+    # 右下：对比表  (y=8..46，与右上留 4 单位空白)
+    title_panel(ax, 51, 8, 46, 38,
                 '两阶段 vs 单阶段 (硬切换) 的本质差别',
                 color='#c8651f', fc=LIGHT_ORANGE)
     rows = [
-        ('对比项',         '硬切换 (单阶段)',     '两阶段迁移 (本方案)'),
-        ('关键路径耗时',   '需迁全部 ≈ 700 ms',   r'仅 $\Delta\mathcal{C}_{\mathrm{dyn}}$，< 50 ms'),
-        ('业务可见中断',   '0.3-1 s 全丢',         '0 (B 接管时上下文完整)'),
+        ('对比项',         '硬切换 (单阶段)',     '两阶段 (本方案)'),
+        ('关键路径耗时',   '迁全部 ≈ 700 ms',     r'仅 $\Delta\mathcal{C}_{\mathrm{dyn}}$ < 50 ms'),
+        ('业务可见中断',   '0.3-1 s 全丢',         '0 (B 接管时完整)'),
         ('对带宽要求',     '瞬时高峰',             '与业务流并行均摊'),
-        ('失败处理',       '只能重连',             '三层降级 (L1/L2/L3/L4)'),
+        ('失败处理',       '只能重连',             '三层降级兜底'),
     ]
-    col_xs = [52.5, 67, 83]
+    col_xs = [53, 67, 83]
+    y_top = 41
     for r, row in enumerate(rows):
-        y = 49 - r*3.7
+        y = y_top - r*4.2
         if r == 0:
-            ax.add_patch(Rectangle((51.5, y - 1.4), 45, 3.4, fc='#c8651f', alpha=0.92, zorder=3))
+            ax.add_patch(Rectangle((51.5, y - 1.6), 45, 3.6, fc='#c8651f', alpha=0.92, zorder=3))
             for c, v in enumerate(row):
-                ax.text(col_xs[c], y + 0.4, v, fontsize=9.5, color='white',
+                ax.text(col_xs[c], y + 0.4, v, fontsize=9.2, color='white',
                         weight='bold', va='center', zorder=11)
         else:
             for c, v in enumerate(row):
                 color = PURPLE if c == 0 else ('#a52828' if c == 1 else '#2e7d4f')
-                ax.text(col_xs[c], y + 0.4, v, fontsize=9.2, color=color,
+                ax.text(col_xs[c], y + 0.4, v, fontsize=8.8, color=color,
                         va='center', zorder=10)
-
-    ax.text(51, 24,
-            '即：两阶段迁移把“一次性大停机”拆成“多次小拷贝 + 一次微小同步”，\n'
-            r'实现了真正的“Make-before-Break” — 这是“零中断、零丢包”的根本来源。',
-            fontsize=9.8, color=GRAY, va='top', linespacing=1.7, style='italic', zorder=10)
+    # panel 底部注脚
+    ax.text(52.5, 14,
+            '即：把“一次性大停机”拆成“多次小拷贝 + 一次微小同步”，\n'
+            r'实现 Make-before-Break — 零中断 / 零丢包的根本来源。',
+            fontsize=8.8, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
     save(fig, '11_principle_twophase.png')
 
 # =========================================================
