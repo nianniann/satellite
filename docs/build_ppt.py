@@ -12,10 +12,26 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.image as mpimg
 
 # ===== 全局样式 =====
-mpl.rcParams['font.sans-serif'] = ['PingFang SC', 'Heiti SC', 'Arial Unicode MS']
+# 显式加载微软雅黑（系统未默认安装的话，从 Office 自带字体目录拿）
+from matplotlib import font_manager as _fm
+_MSYH_CANDIDATES = [
+    '/Library/Fonts/Microsoft/msyh.ttf',
+    '/Users/sir1st/Library/Fonts/msyh.ttf',
+    '/Applications/Microsoft PowerPoint.app/Contents/Resources/DFonts/msyh.ttf',
+    '/Applications/Microsoft Word.app/Contents/Resources/DFonts/msyh.ttf',
+]
+for _p in _MSYH_CANDIDATES:
+    if os.path.exists(_p):
+        try:
+            _fm.fontManager.addfont(_p)
+        except Exception:
+            pass
+        break
+
+mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'PingFang SC', 'Heiti SC', 'Arial Unicode MS']
 mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['axes.unicode_minus'] = False
-mpl.rcParams['mathtext.fontset'] = 'cm'   # Computer Modern for $...$
+mpl.rcParams['mathtext.fontset'] = 'cm'   # 公式始终用 Computer Modern
 
 PURPLE = '#5a2d8a'
 GOLD = '#c9a96e'
@@ -473,7 +489,7 @@ def slide_07():
          'Lyapunov 闭式策略虽然 $O(N)$，但每时隙都要更新虚拟队列 $Q(t)$、维护代价矩阵；\n'
          '星上 CPU 紧、FPGA 难做浮点比较  →  必须把策略“离线蒸馏”成只做前向推理的网络。'),
         ('③ → ④', '#2e7d4f',
-         '即便决策瞬时正确，AOS ↔ B 网关之间的翻译上下文未迁移，硬切换仍丢 15 万分片；\n'
+         '即便决策瞬时正确，AOS <-> B 网关之间的翻译上下文未迁移，硬切换仍丢 15 万分片；\n'
          '决策的“正确性”必须配套状态的“连续性”  →  必须有协议级两阶段迁移 + 副本一致性。'),
     ]
     for i, (lbl, color, body) in enumerate(chain):
@@ -593,7 +609,7 @@ def slide_09():
             fontsize=12, color=DARK, zorder=10)
     ax.text(6, 46,
             '· 每时隙 $O(N)$ 闭式可解，无需在线求解器；\n'
-            '· $V$ 是“代价 ↔ 切换次数”的权衡参数；\n'
+            '· $V$ 是“代价 <-> 切换次数”的权衡参数；\n'
             '· $Q$ 随时间累积，自动抑制频繁切换。',
             fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
 
@@ -624,7 +640,7 @@ def slide_09():
             '\n'
             r'  · 这是因为卫星硬可见性约束几乎在每个时隙都收敛到唯一最优 $a^{*}$；'
             '\n'
-            r'  · 即 $V$ 调参的“代价 ↔ 切换次数”trade-off 在本场景下被几何约束“替代”了；'
+            r'  · 即 $V$ 调参的“代价 <-> 切换次数”trade-off 在本场景下被几何约束“替代”了；'
             '\n'
             '  · 实际意义：算法对 $V$ 选择天然鲁棒，部署时无需手动调参。',
             fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
@@ -855,7 +871,7 @@ def slide_13():
         ax.plot([cx, nx], [cy, ny], color=color, lw=lw, alpha=(1.0 if sel else 0.4))
     ax.text(5, 26,
             r'并行预复制 $\mathcal{C}_{\mathrm{static}}$ ( ≈ 288 B/份 ) 至 Top-M 候选；'
-            '开销 ≪ ISL 带宽。\n'
+            '开销 << ISL 带宽。\n'
             '一旦决策切换到任意候选，目标网关已有静态上下文，Stop-copy 仅需增量。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
 
@@ -896,7 +912,7 @@ def slide_13():
                 ax.text(cols[c] + 0.3, y + 0.7, v, fontsize=9.5, color=DARK, va='center')
     ax.text(52, 23,
             '实测 (30 min)：179 轮 Gossip / 安装 1 副本 / 淘汰 1 个；\n'
-            '三条路径 (写、传播、淘汰) 全部打通；总开销 ≪ ISL 带宽。',
+            '三条路径 (写、传播、淘汰) 全部打通；总开销 << ISL 带宽。',
             fontsize=10, color='#2e7d4f', va='top', linespacing=1.55, style='italic')
     save(fig, '13_principle_gossip.png')
 
@@ -1442,35 +1458,36 @@ def slide_25():
     fig, ax = new_slide()
     header(ax, '实验结果③：关键可视化  (4 张图逐图解读)')
 
-    # 2x2 grid for images + analysis text on the right of each
-    # Use 4 panels each ~ 40 wide x 32 tall
-    layouts = [
-        # (img, x, y, w, h, text_x, text_y, title, analysis)
-        ('fig4_loss_rate.png', 4, 50, 27, 28, 32, 78,
-         'Fig.4  Packet loss rate over time',
-         '基线 (Reactive / Max-Vis) 在 1100–1800 s 区间出现孤立尖峰\n'
-         '(对应 30 min 内 3 次切换)；MPTCP-style 全程高 PLR；\n'
-         '本方案 (Ours-Lyap / Ours-IL) 始终为 0，曲线贴底无尖峰。'),
-        ('fig5_latency_cdf.png', 4, 14, 27, 28, 32, 42,
-         'Fig.5  End-to-end latency CDF (log x)',
-         '4 ms 处 P50 ≈ 0.5；MPTCP / Pure-DRL 长尾明显 (P99 > 10 ms)，\n'
-         '本方案与 Reactive / Max-Vis 几乎重合于左侧最快段；\n'
-         '说明零丢包不是“以排队等待换取”，而是真正的最优路径。'),
-        ('fig7_load_balance.png', 51, 50, 27, 28, 79, 78,
-         'Fig.7  Load balance across gateways',
-         '横轴 16 颗 IPv6 网关；纵轴各方案承载分片数。\n'
-         '本方案 CV = 0.64，明显优于 MPTCP-style 的 CV = 1.63；\n'
-         '$\\beta L$ 项有效避免单网关饱和，未牺牲端到端性能。'),
-        ('fig8_summary.png', 51, 14, 27, 28, 79, 42,
-         'Fig.8  6 方案 × 6 万 means±std 柱状图  (受误差棒)',
-         '一图概括：PLR / E2E / 切换数 / 中断时长 — 4 个核心指标。\n'
-         '本方案在 PLR、切换数、中断时长 3 项几乎为 0；\n'
-         'MPTCP-style 在中断时长上跨度极大 (误差棒最长)。'),
+    # 2x2 单元格：每格 标题(顶) + 图(中) + 文字解读(底)
+    # 单元格宽 44、高 36；左 x=4..48，右 x=50..94
+    cells = [
+        # (cell_x, cell_y, img_file, title, analysis)
+        (4, 46, 'fig4_loss_rate.png', 'Fig.4  Packet loss rate over time',
+         '基线 (Reactive / Max-Vis) 在 1100–1800 s 出现孤立尖峰；\n'
+         'MPTCP-style 全程高 PLR；本方案曲线始终贴底为 0。'),
+        (50, 46, 'fig7_load_balance.png', 'Fig.7  Load balance across 16 gateways',
+         '横轴 16 颗 IPv6 网关；纵轴方案承载分片数。\n'
+         '本方案 CV = 0.64，远优于 MPTCP-style 的 1.63。'),
+        (4, 8, 'fig5_latency_cdf.png', 'Fig.5  End-to-end latency CDF (log x)',
+         '4 ms 处 P50 ≈ 0.5；MPTCP / DRL 长尾明显 (P99 > 10 ms)；\n'
+         '本方案与 Reactive / Max-Vis 重合于左侧最快段。'),
+        (50, 8, 'fig8_summary.png', 'Fig.8  6 方案 × 5 seed mean±std 柱状图',
+         '一图概括 PLR / E2E / 切换数 / 中断时长 4 个核心指标；\n'
+         '本方案在其中 3 项几乎为 0；MPTCP-style 中断误差棒最长。'),
     ]
-    for img, x, y, w, h, tx, ty, tt, an in layouts:
-        add_image(ax, os.path.join(FIG_DIR, img), x, y, w, h)
-        ax.text(tx, ty, tt, fontsize=10.5, color=PURPLE, weight='bold', va='top')
-        ax.text(tx, ty - 3.5, an, fontsize=9.5, color=DARK, va='top', linespacing=1.5)
+    CW, CH = 44, 36
+    for cx, cy, img, title, an in cells:
+        # 单元格淡底
+        panel(ax, cx, cy, CW, CH, fc='white', ec=PURPLE, lw=0.8, alpha=0.85)
+        # 标题（顶部，紧贴 panel 顶下方 1 单位）
+        ax.text(cx + 1.5, cy + CH - 2, title, fontsize=10.5, color=PURPLE,
+                weight='bold', va='top', zorder=10)
+        # 图（中部，占大头）
+        add_image(ax, os.path.join(FIG_DIR, img),
+                  cx + 2, cy + 8, CW - 4, CH - 14)
+        # 文字解读（底部 7 单位高）
+        ax.text(cx + 1.5, cy + 6.5, an, fontsize=9.5, color=DARK,
+                va='top', linespacing=1.55, zorder=10)
     save(fig, '25_visualizations.png')
 
 # =========================================================
@@ -1480,12 +1497,12 @@ def slide_26():
     fig, ax = new_slide()
     header(ax, '结论')
 
-    # 左上：研究实现了什么
-    title_panel(ax, 4, 50, 47, 33, '本研究实现了什么', color=PURPLE, fc=LIGHT_PURPLE)
+    # 左上：研究实现了什么  (panel 48..82 = h 34)
+    title_panel(ax, 4, 48, 46, 34, '本研究实现了什么', color=PURPLE, fc=LIGHT_PURPLE)
     ax.text(5.5, 76,
-            '面向 LEO 异构星座中“AOS ↔ IPv6 协议转换网关”的高动态切换问题，\n'
+            '面向 LEO 异构星座中“AOS <-> IPv6 协议转换网关”的高动态切换问题，\n'
             '构建了从理论 → 算法 → 系统 → 实测的完整闭环：',
-            fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
+            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
     achievs = [
         r'理论：在卫星场景中证明 Lyapunov drift-plus-penalty 的 $[O(1/V),O(V)]$ 上界；',
         r'机制：提出 $\mathcal{C}_{\mathrm{static}}/\mathcal{C}_{\mathrm{dynamic}}$ 二分模型 + 两阶段 + 三层降级；',
@@ -1494,60 +1511,57 @@ def slide_26():
         '指标：PLR = 0%、0 中断、E2E 6.24 ms、IL 推理 < 0.2 ms 可上星。',
     ]
     for i, t in enumerate(achievs):
-        y = 67 - i*3.4
-        ax.text(6, y, '•', fontsize=11, color=GOLD, va='center', zorder=10)
-        ax.text(8, y, t, fontsize=9.8, color=DARK, va='center', zorder=10)
+        y = 65 - i*3.0
+        ax.text(6, y, '•', fontsize=10.5, color=GOLD, va='center', zorder=10)
+        ax.text(8, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
 
-    # 右上：可应用的场景
-    title_panel(ax, 53, 50, 44, 33, '可应用的场景', color='#2e7d4f', fc=LIGHT_GREEN)
+    # 右上：可应用的场景  (panel 48..82 = h 34)
+    title_panel(ax, 52, 48, 45, 34, '可应用的场景', color='#2e7d4f', fc=LIGHT_GREEN)
     scenes = [
         ('军民两用 LEO 星座网关侧软件',
-         '老一代 CCSDS / AOS 与新一代 IPv6 卫星长期共存，\n本方案可作为网关星上“切换决策 + 状态迁移”模块部署。'),
+         '老一代 CCSDS/AOS 与新一代 IPv6 卫星长期共存；\n可作为网关星上“切换决策 + 状态迁移”模块部署。'),
         ('天基物联网 / 应急通信',
-         '气象、海事、灾区遥测等长时段会话对零丢包敏感，\n两阶段迁移可保证会话级状态不丢失，避免业务重连。'),
+         '气象、海事、灾区遥测等长时段会话对零丢包敏感；\n两阶段迁移保证会话状态不丢失，避免业务重连。'),
         ('多运营商共建共享卫星网',
-         '多覆盖网关来自不同运营商时，Top-M + Gossip 支持对等节点，\n无需选举 leader 即可达到副本最终一致。'),
+         '多覆盖网关来自不同运营商时，Top-M + Gossip 支持对等；\n无需选举 leader 即可达到副本最终一致。'),
         ('星地融合 6G 试验网',
-         '作为“星上 SDN / NFV”原型的迁移控制平面，\n与地面 MPTCP / SRv6 联动验证一体化端到端 QoS。'),
+         '作为“星上 SDN / NFV”的迁移控制平面；\n与地面 MPTCP / SRv6 联动验证端到端 QoS。'),
     ]
     for i, (name, body) in enumerate(scenes):
-        y = 75 - i*6.5
-        ax.text(54.5, y, '· ' + name, fontsize=10.5, color='#2e7d4f', weight='bold', va='center', zorder=10)
-        ax.text(56.5, y - 3, body, fontsize=9.5, color=DARK, va='top', linespacing=1.5, zorder=10)
+        y = 73 - i*6.3
+        ax.text(53.5, y, '· ' + name, fontsize=10, color='#2e7d4f', weight='bold', va='center', zorder=10)
+        ax.text(55.5, y - 2.8, body, fontsize=9.2, color=DARK, va='top', linespacing=1.5, zorder=10)
 
-    # 下：局限性 + 未来工作
-    title_panel(ax, 4, 8, 47, 38, '局限性', color='#a52828', fc=LIGHT_RED)
+    # 下：局限性 + 未来工作   (panel y=5, h=40)
+    title_panel(ax, 4, 5, 46, 41, '局限性', color='#a52828', fc=LIGHT_RED)
     lims = [
         '当前仅支持单颗 AOS；多 AOS 并发场景下网关资源博弈尚未建模；',
         'Pre-copy 与业务流共享 ISL 带宽，未做严格的抢占调度；',
         'Gossip 假设节点可信，安全层 (HMAC / 抗女巫) 尚未编码；',
         '星历 TLE 在 24 h 后会陈旧，长仿真未覆盖 TLE 更新流程。',
     ]
-    # (上面 title_panel 的 title 用了局限性，无需重复 ax.text)
-    # 局限性条目
     for i, t in enumerate(lims):
-        y = 39 - i*4
-        ax.text(5.5, y, '·', fontsize=12, color='#a52828', va='center', zorder=10)
-        ax.text(7.5, y, t, fontsize=10, color=DARK, va='center', zorder=10)
-    # 实测受限注脚（不要超出 panel）
+        y = 38 - i*3.4
+        ax.text(5.5, y, '·', fontsize=11.5, color='#a52828', va='center', zorder=10)
+        ax.text(7.5, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
     ax.text(5.5, 19,
             '说明：上述局限主要源于仿真假设，与算法本身无关；\n'
             '在硬件在环平台上验证后可逐项收敛。',
-            fontsize=9.3, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
+            fontsize=9, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
 
-    title_panel(ax, 53, 8, 44, 38, '下一步工作', color='#3666b8', fc=LIGHT_BLUE)
+    title_panel(ax, 52, 5, 45, 41, '下一步工作', color='#3666b8', fc=LIGHT_BLUE)
     futs = [
         '多 AOS 扩展：拍卖 / 博弈机制实现网关资源共享；',
         'LSTM 在线修正陈旧 TLE，减小星历预测误差；',
         'SDR / FPGA 硬件在环 (HIL) 验证决策延迟；',
-        '与课题前序两项工作 (地址自动配置、报文转换) 端到端联调；',
+        '与课题前序两项工作 (地址配置、报文转换) 端到端联调；',
         '安全增强：Gossip HMAC + 抗女巫攻击 + 副本签名；',
         '面向 6G 标准化：与 3GPP NTN 切换流程对齐。',
     ]
     for i, t in enumerate(futs):
-        y = 40 - i*4
-        ax.text(54.5, y, '·', fontsize=12, color='#3666b8', va='center', zorder=10)
-        ax.text(56.5, y, t, fontsize=10, color=DARK, va='center', zorder=10)
+        y = 38 - i*3.4
+        ax.text(53.5, y, '·', fontsize=11.5, color='#3666b8', va='center', zorder=10)
+        ax.text(55.5, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
 
     save(fig, '26_conclusion.png')
 
