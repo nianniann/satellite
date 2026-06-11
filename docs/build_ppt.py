@@ -81,7 +81,14 @@ def title_panel(ax, x, y, w, h, title, color=PURPLE, fc=None):
     if fc is None:
         fc = LIGHT_PURPLE
     panel(ax, x, y, w, h, fc=fc, ec=color)
-    ax.text(x + 1.5, y + h - 1.5, title, fontsize=12, color=color, weight='bold', va='top')
+    ax.text(x + 1.5, y + h - 1.5, title, fontsize=12, color=color,
+            weight='bold', va='top', zorder=10)
+
+def body_y(panel_y, panel_h, line=0, lh=3.2):
+    """Recommended top-y for body text inside a title_panel.
+    line=0 is the first body line (sits ~4.5 below title bottom).
+    Each subsequent line shifts down by lh (axes units)."""
+    return panel_y + panel_h - 5.5 - line * lh
 
 def save(fig, name):
     out = os.path.join(OUT, name)
@@ -258,13 +265,13 @@ def slide_04():
         ax.text(55.5, 56 - i*4, '•', fontsize=12, color=GOLD, va='top')
         ax.text(57.5, 56 - i*4, t, fontsize=10.5, color=DARK, va='top')
 
-    title_panel(ax, 55, 18, 40, 14, '本阶段研究重点',
+    title_panel(ax, 55, 14, 41, 20, '本阶段研究重点',
                 color='#a52828', fc=LIGHT_RED)
-    ax.text(56.5, 27.5,
+    ax.text(56.5, 28,
             '把“静态可转换”升级为“持续可转换”：\n'
             '在 LEO 高动态、可见窗口受限、多副本并存条件下，\n'
             '提供端到端服务连续性 (零中断、零丢包、状态可证)。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55)
+            fontsize=10, color=DARK, va='top', linespacing=1.7, zorder=10)
     save(fig, '04_status.png')
 
 # =========================================================
@@ -346,15 +353,15 @@ def slide_06():
     fig, ax = new_slide()
     header(ax, '困境②：多覆盖网关并发  →  状态分裂与权威副本难题')
 
-    ax.text(5, 82,
-            'LEO 星座中一颗 AOS 卫星在同一时刻经常被 2–3 颗 IPv6 网关卫星同时覆盖；\n'
-            '若每颗候选网关独立维护一份翻译上下文 (TC) 副本，并各自接收 / 转换报文，\n'
-            '则不同副本会出现版本差异 — AOS 切换到任意一颗都可能读到“过期 / 错乱”的状态。',
-            fontsize=11, color=DARK, va='top', linespacing=1.6, zorder=10)
+    ax.text(4, 84,
+            'LEO 星座中一颗 AOS 卫星在同一时刻经常被 2–3 颗 IPv6 网关同时覆盖；\n'
+            '若每颗候选网关独立维护一份翻译上下文 (TC)，AOS 切换到任意一颗都可能\n'
+            '读到“过期/错乱”的状态。',
+            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
 
     # 左：示意图
     import math
-    cx, cy = 22, 50
+    cx, cy = 22, 48
     ax.plot(cx, cy, 'o', ms=24, color='#a52828', zorder=5)
     ax.text(cx, cy, 'AOS', ha='center', va='center', fontsize=10, color='white', weight='bold', zorder=11)
     coords = [(10, 65, 'g1', 'v=8'), (35, 65, 'g2', 'v=9'),
@@ -924,7 +931,7 @@ def slide_14():
     header(ax, '关键算法伪代码')
 
     # 算法 1
-    ax.text(5, 82, '算法 1  Lyapunov 在线决策', fontsize=12, color=PURPLE, weight='bold')
+    ax.text(5, 84, '算法 1  Lyapunov 在线决策', fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
     code1 = (
         "Q ← 0;  a_prev ← initial_gw\n"
         "for t = 0, 1, 2, …:\n"
@@ -941,12 +948,12 @@ def slide_14():
         "    Q ← max(Q + (a*≠a_prev) − C_max·Δt, 0)\n"
         "    a_prev ← a*"
     )
-    ax.text(5.5, 78, code1, fontsize=8.8, color=DARK, va='top',
-            family='monospace',
-            bbox=dict(boxstyle='round,pad=0.6', fc='#f6f4fb', ec=PURPLE, lw=0.8))
+    ax.text(5.5, 80, code1, fontsize=8.2, color=DARK, va='top',
+            family='monospace', zorder=10,
+            bbox=dict(boxstyle='round,pad=0.5', fc='#f6f4fb', ec=PURPLE, lw=0.8))
 
     # 算法 2
-    ax.text(5, 42, '算法 2  两阶段迁移 + 三层降级', fontsize=12, color=PURPLE, weight='bold')
+    ax.text(5, 38, '算法 2  两阶段迁移 + 三层降级', fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
     code2 = (
         "def migrate(A, bw, prop, lead, T_phys):\n"
         "    snap  ← A.dynamic.snapshot()\n"
@@ -960,12 +967,12 @@ def slide_14():
         "    if b/(bw·η)+prop ≤ T_phys: return DEGRADED_2,  sel\n"
         "    return FAILED, hard_handoff"
     )
-    ax.text(5.5, 38, code2, fontsize=8.8, color=DARK, va='top',
-            family='monospace',
-            bbox=dict(boxstyle='round,pad=0.6', fc='#f6f4fb', ec=PURPLE, lw=0.8))
+    ax.text(5.5, 36, code2, fontsize=8.2, color=DARK, va='top',
+            family='monospace', zorder=10,
+            bbox=dict(boxstyle='round,pad=0.5', fc='#f6f4fb', ec=PURPLE, lw=0.8))
 
     # 算法 3
-    ax.text(52, 82, '算法 3  Top-M 乐观复制 + Gossip', fontsize=12, color=PURPLE, weight='bold')
+    ax.text(52, 84, '算法 3  Top-M 乐观复制 + Gossip', fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
     code3 = (
         "def replicate_static(A, candidates, M):\n"
         "    scores ← [ΔT_i − 50·L_i  for i in candidates]\n"
@@ -981,11 +988,11 @@ def slide_14():
         "                    other.evict(msg.scid)\n"
         "        g.evict_stale(now)"
     )
-    ax.text(52.5, 78, code3, fontsize=8.8, color=DARK, va='top',
-            family='monospace',
-            bbox=dict(boxstyle='round,pad=0.6', fc='#f6f4fb', ec=PURPLE, lw=0.8))
+    ax.text(52.5, 80, code3, fontsize=8.2, color=DARK, va='top',
+            family='monospace', zorder=10,
+            bbox=dict(boxstyle='round,pad=0.5', fc='#f6f4fb', ec=PURPLE, lw=0.8))
 
-    ax.text(52, 40, '算法核心特性总结', fontsize=12, color=PURPLE, weight='bold')
+    ax.text(52, 38, '算法核心特性总结', fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
     feats = [
         r'Lyapunov 闭式 $O(N)$，每时隙 < 1 ms；',
         '两阶段迁移：Pre-copy + Stop-copy + 三层降级；',
@@ -995,8 +1002,8 @@ def slide_14():
         '推理延迟可上界，决策周期 5000× 富余。',
     ]
     for i, t in enumerate(feats):
-        ax.text(52.5, 36 - i*4, '•', fontsize=12, color=GOLD)
-        ax.text(54.5, 36 - i*4, t, fontsize=10.5, color=DARK, va='center')
+        ax.text(52.5, 33 - i*3.6, '•', fontsize=11, color=GOLD, va='center', zorder=10)
+        ax.text(54.5, 33 - i*3.6, t, fontsize=10, color=DARK, va='center', zorder=10)
     save(fig, '14_pseudocode.png')
 
 # =========================================================
@@ -1114,30 +1121,35 @@ def slide_16():
 
 def _stage_detail_layout(ax, stage_no, name, color, fc_light, dur,
                          purpose, how, inputs, outputs, key_design, extra):
-    """通用模板：左侧目的+输入+输出，右侧 How（详细步骤）+ 关键设计点"""
+    """通用模板：左侧目的+输入+输出，右侧 How（详细步骤）+ 关键设计点
+    布局重排：所有 panel 之间留 2 单位空白；body 文本起点 y + h - 5.5；行距 1.6"""
     header(ax, f'实验流程  {stage_no}：{name}  ( 实测耗时 {dur} )')
 
-    # 左：本阶段做什么 + 输入 + 输出
-    title_panel(ax, 4, 56, 44, 28, '阶段目标与作用', color=color, fc=fc_light)
-    ax.text(5.5, 78, '目的', fontsize=11, color=color, weight='bold', zorder=10)
-    ax.text(5.5, 74, purpose, fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
+    # ============== 左列 ==============
+    # 左 1：目的  y=[60, 84]  h=24
+    title_panel(ax, 4, 60, 44, 24, '阶段目标与作用', color=color, fc=fc_light)
+    ax.text(5.5, 78.2, '目的：', fontsize=10.5, color=color, weight='bold', zorder=10)
+    ax.text(11, 78.2, purpose, fontsize=9.6, color=DARK, va='top', linespacing=1.65, zorder=10)
 
-    title_panel(ax, 4, 30, 44, 22, '输入  /  输出', color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(5.5, 47, '输入：', fontsize=10.5, color=PURPLE, weight='bold', zorder=10)
-    ax.text(8, 47, inputs, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
-    ax.text(5.5, 39, '输出：', fontsize=10.5, color=PURPLE, weight='bold', zorder=10)
-    ax.text(8, 39, outputs, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+    # 左 2：输入/输出  y=[34, 56]  h=22  (与左1留 4 单位)
+    title_panel(ax, 4, 34, 44, 22, '输入  /  输出', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(5.5, 50.5, '输入：', fontsize=10, color=PURPLE, weight='bold', zorder=10)
+    ax.text(11, 50.5, inputs, fontsize=9.5, color=DARK, va='top', linespacing=1.6, zorder=10)
+    ax.text(5.5, 42, '输出：', fontsize=10, color=PURPLE, weight='bold', zorder=10)
+    ax.text(11, 42, outputs, fontsize=9.5, color=DARK, va='top', linespacing=1.6, zorder=10)
 
-    title_panel(ax, 4, 7, 44, 19, '关键设计点', color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(5.5, 22, key_design, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+    # 左 3：关键设计点  y=[6, 30]  h=24
+    title_panel(ax, 4, 6, 44, 24, '关键设计点', color='#c8651f', fc=LIGHT_ORANGE)
+    ax.text(5.5, 24.5, key_design, fontsize=9.6, color=DARK, va='top', linespacing=1.65, zorder=10)
 
-    # 右：详细步骤
-    title_panel(ax, 50, 18, 46, 66, '执行步骤  (How)', color=color, fc='white')
-    ax.text(51.5, 80, how, fontsize=10.2, color=DARK, va='top', linespacing=1.6, zorder=10)
+    # ============== 右列 ==============
+    # 右 1：How  y=[20, 84]  h=64  (与右2留 4 单位)
+    title_panel(ax, 50, 20, 46, 64, '执行步骤  (How)', color=color, fc='white')
+    ax.text(51.5, 78.5, how, fontsize=9.6, color=DARK, va='top', linespacing=1.7, zorder=10)
 
-    # 右下：备注 / 实测细节
-    title_panel(ax, 50, 5, 46, 11, '实测细节 / 工程说明', color=GRAY, fc='#f7f7fb')
-    ax.text(51.5, 13, extra, fontsize=9.8, color=DARK, va='top', linespacing=1.55, zorder=10)
+    # 右 2：实测细节  y=[6, 16]  h=10  (与右1留 4 单位)
+    title_panel(ax, 50, 6, 46, 10, '实测细节 / 工程说明', color=GRAY, fc='#f7f7fb')
+    ax.text(51.5, 11.5, extra, fontsize=9.4, color=DARK, va='top', linespacing=1.6, zorder=10)
 
 
 def slide_17():
@@ -1497,71 +1509,98 @@ def slide_26():
     fig, ax = new_slide()
     header(ax, '结论')
 
-    # 左上：研究实现了什么  (panel 48..82 = h 34)
-    title_panel(ax, 4, 48, 46, 34, '本研究实现了什么', color=PURPLE, fc=LIGHT_PURPLE)
+    # ============ 第 1 行 ============
+    # 左上：本研究实现了什么
+    title_panel(ax, 4, 60, 46, 23, '本研究实现了什么', color=PURPLE, fc=LIGHT_PURPLE)
     ax.text(5.5, 76,
-            '面向 LEO 异构星座中“AOS <-> IPv6 协议转换网关”的高动态切换问题，\n'
-            '构建了从理论 → 算法 → 系统 → 实测的完整闭环：',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+            '面向 LEO 异构星座中“AOS <-> IPv6 协议转换网关”的高动态切换难题，\n'
+            '建成 “理论 → 算法 → 系统 → 实测” 完整闭环。',
+            fontsize=9.8, color=DARK, va='top', linespacing=1.6, zorder=10)
     achievs = [
-        r'理论：在卫星场景中证明 Lyapunov drift-plus-penalty 的 $[O(1/V),O(V)]$ 上界；',
-        r'机制：提出 $\mathcal{C}_{\mathrm{static}}/\mathcal{C}_{\mathrm{dynamic}}$ 二分模型 + 两阶段 + 三层降级；',
-        '协议：Top-M 乐观复制 + Lamport-Gossip，解决多覆盖下状态分裂；',
-        '系统：开源 SimPy 平台，6 方案 × 5 种子 × 30 min 仿真完整可复现；',
-        '指标：PLR = 0%、0 中断、E2E 6.24 ms、IL 推理 < 0.2 ms 可上星。',
+        r'理论：证明 Lyapunov drift-plus-penalty 在卫星场景的 $[O(1/V),O(V)]$ 上界；',
+        r'机制：$\mathcal{C}_{\mathrm{static}}/\mathcal{C}_{\mathrm{dynamic}}$ 二分模型 + 两阶段 + 三层降级；',
+        '协议：Top-M 乐观复制 + Lamport-Gossip，解决多覆盖状态分裂；',
+        '系统：开源 SimPy 平台 + 31 单元测试 + 5 seed × 30 min 仿真。',
     ]
     for i, t in enumerate(achievs):
-        y = 65 - i*3.0
-        ax.text(6, y, '•', fontsize=10.5, color=GOLD, va='center', zorder=10)
-        ax.text(8, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
+        y = 70 - i*2.6
+        ax.text(6, y, '•', fontsize=10, color=GOLD, va='center', zorder=10)
+        ax.text(8, y, t, fontsize=9.3, color=DARK, va='center', zorder=10)
 
-    # 右上：可应用的场景  (panel 48..82 = h 34)
-    title_panel(ax, 52, 48, 45, 34, '可应用的场景', color='#2e7d4f', fc=LIGHT_GREEN)
-    scenes = [
-        ('军民两用 LEO 星座网关侧软件',
-         '老一代 CCSDS/AOS 与新一代 IPv6 卫星长期共存；\n可作为网关星上“切换决策 + 状态迁移”模块部署。'),
-        ('天基物联网 / 应急通信',
-         '气象、海事、灾区遥测等长时段会话对零丢包敏感；\n两阶段迁移保证会话状态不丢失，避免业务重连。'),
-        ('多运营商共建共享卫星网',
-         '多覆盖网关来自不同运营商时，Top-M + Gossip 支持对等；\n无需选举 leader 即可达到副本最终一致。'),
-        ('星地融合 6G 试验网',
-         '作为“星上 SDN / NFV”的迁移控制平面；\n与地面 MPTCP / SRv6 联动验证端到端 QoS。'),
+    # 右上：场景化定量结果  (核心新增)
+    title_panel(ax, 52, 60, 45, 23,
+                'AOS <-> IPv6 转换场景下的实测结果', color='#2e7d4f', fc=LIGHT_GREEN)
+    scen_results = [
+        ('LEO 单 AOS + 16 颗 IPv6 网关、30 min 持续切换',
+         'PLR = 0.00 %、0 中断、E2E 6.24 ms (vs 基线 6.07–8.60)'),
+        ('300 pps · 100 万事件 · 5 种子',
+         '切换数 1.0、迁移分片 ~15 万、零丢分片 (跨全部种子)'),
+        ('星上 CPU 推理路径',
+         '决策延迟 < 0.2 ms / 时隙，对 $T_{\\mathrm{phys}}=500$ ms 富余 2500×'),
+        ('多覆盖 (k ≥ 2) 状态分裂场景',
+         '179 轮 Gossip 后副本最终一致，开销 << ISL 带宽'),
     ]
-    for i, (name, body) in enumerate(scenes):
-        y = 73 - i*6.3
-        ax.text(53.5, y, '· ' + name, fontsize=10, color='#2e7d4f', weight='bold', va='center', zorder=10)
-        ax.text(55.5, y - 2.8, body, fontsize=9.2, color=DARK, va='top', linespacing=1.5, zorder=10)
+    for i, (cond, result) in enumerate(scen_results):
+        y = 78 - i*5
+        ax.text(53.5, y, '场景：' + cond, fontsize=9.2, color='#2e7d4f',
+                weight='bold', va='center', zorder=10)
+        ax.text(53.5, y - 2.6, '→ ' + result, fontsize=9.3, color=DARK, va='center', zorder=10)
 
-    # 下：局限性 + 未来工作   (panel y=5, h=40)
-    title_panel(ax, 4, 5, 46, 41, '局限性', color='#a52828', fc=LIGHT_RED)
+    # ============ 第 2 行：场景适用性（三块子面板，互不重叠） ============
+    ax.text(4, 56,
+            '在 AOS <-> IPv6 协议转换网关侧可直接受益的具体业务场景：',
+            fontsize=11, color=PURPLE, weight='bold', va='center', zorder=10)
+    apps = [
+        ('窄带遥测 / 遥控\n(气象 · 海事 · 灾区)', '#2e7d4f', LIGHT_GREEN,
+         '长时段会话 + 低速率，对零丢包敏感；\n'
+         '两阶段迁移保证 CCSDS 长帧重组上下文不丢；\n'
+         '实测每次切换迁 ~15 万分片、0 丢包。'),
+        ('实时控制 / 视频回传', '#c8651f', LIGHT_ORANGE,
+         '端到端延迟稳定 6.24 ms，与无切换基线一致；\n'
+         '切换瞬间 0 中断，画面无卡顿；\n'
+         '适用：UAV 回传、星载视频直播、指控链路。'),
+        ('多运营商共建共享星座', '#3666b8', LIGHT_BLUE,
+         '多颗 IPv6 网关来自不同运营商时，\n'
+         'Top-M + Gossip 无需 leader、副本最终一致；\n'
+         '适用：千帆 + OneWeb 互联、卫星 MVNO 漫游。'),
+    ]
+    cell_w = 30; gap = 1.5; cy_panel = 32; ch_panel = 21
+    for i, (title, color, fc, body) in enumerate(apps):
+        cx = 4 + i*(cell_w + gap)
+        panel(ax, cx, cy_panel, cell_w, ch_panel, fc=fc, ec=color, lw=1.2)
+        ax.text(cx + 1.2, cy_panel + ch_panel - 2, title, fontsize=10,
+                color=color, weight='bold', va='top', linespacing=1.4, zorder=10)
+        ax.text(cx + 1.2, cy_panel + ch_panel - 8, body, fontsize=9, color=DARK,
+                va='top', linespacing=1.65, zorder=10)
+
+    # ============ 第 3 行：局限性 + 下一步 ============
+    title_panel(ax, 4, 5, 46, 25, '局限性', color='#a52828', fc=LIGHT_RED)
     lims = [
-        '当前仅支持单颗 AOS；多 AOS 并发场景下网关资源博弈尚未建模；',
-        'Pre-copy 与业务流共享 ISL 带宽，未做严格的抢占调度；',
-        'Gossip 假设节点可信，安全层 (HMAC / 抗女巫) 尚未编码；',
-        '星历 TLE 在 24 h 后会陈旧，长仿真未覆盖 TLE 更新流程。',
+        '当前仅支持单颗 AOS；多 AOS 并发未建博弈模型；',
+        'Pre-copy 与业务流共享 ISL，未严格抢占调度；',
+        'Gossip 节点假设可信，HMAC/抗女巫尚未编码；',
+        'TLE 24 h 后陈旧，长仿真未覆盖更新流程。',
     ]
     for i, t in enumerate(lims):
-        y = 38 - i*3.4
-        ax.text(5.5, y, '·', fontsize=11.5, color='#a52828', va='center', zorder=10)
-        ax.text(7.5, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
-    ax.text(5.5, 19,
-            '说明：上述局限主要源于仿真假设，与算法本身无关；\n'
-            '在硬件在环平台上验证后可逐项收敛。',
-            fontsize=9, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
+        y = 25 - i*3.0
+        ax.text(5.5, y, '·', fontsize=11, color='#a52828', va='center', zorder=10)
+        ax.text(7.5, y, t, fontsize=9.2, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 11.5,
+            '说明：以上局限来自仿真假设，不影响算法本身的正确性。',
+            fontsize=8.8, color=GRAY, va='top', style='italic', zorder=10)
 
-    title_panel(ax, 52, 5, 45, 41, '下一步工作', color='#3666b8', fc=LIGHT_BLUE)
+    title_panel(ax, 52, 5, 45, 25, '下一步工作', color='#3666b8', fc=LIGHT_BLUE)
     futs = [
-        '多 AOS 扩展：拍卖 / 博弈机制实现网关资源共享；',
-        'LSTM 在线修正陈旧 TLE，减小星历预测误差；',
+        '多 AOS 扩展：拍卖 / 博弈机制实现资源共享；',
+        'LSTM 在线修正陈旧 TLE，减小预测误差；',
         'SDR / FPGA 硬件在环 (HIL) 验证决策延迟；',
-        '与课题前序两项工作 (地址配置、报文转换) 端到端联调；',
-        '安全增强：Gossip HMAC + 抗女巫攻击 + 副本签名；',
-        '面向 6G 标准化：与 3GPP NTN 切换流程对齐。',
+        '与课题前序工作 (地址、报文) 端到端联调；',
+        '安全：Gossip HMAC + 抗女巫 + 副本签名。',
     ]
     for i, t in enumerate(futs):
-        y = 38 - i*3.4
-        ax.text(53.5, y, '·', fontsize=11.5, color='#3666b8', va='center', zorder=10)
-        ax.text(55.5, y, t, fontsize=9.5, color=DARK, va='center', zorder=10)
+        y = 25 - i*3.0
+        ax.text(53.5, y, '·', fontsize=11, color='#3666b8', va='center', zorder=10)
+        ax.text(55.5, y, t, fontsize=9.2, color=DARK, va='center', zorder=10)
 
     save(fig, '26_conclusion.png')
 
