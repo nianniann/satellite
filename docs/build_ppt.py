@@ -139,16 +139,16 @@ def slide_02():
     fig, ax = new_slide()
     header(ax, '汇报目录')
     items = [
-        ('01', '选题依据与背景',
-         '空天地一体化背景与卫星网络代际异构现状 · 协议转换网关在动态场景下的两类核心困境'),
-        ('02', '研究目标与内容',
-         '从“静态可转换”升级到“持续可转换”：四段式机制总览 + 系统建模 / 决策 / 迁移 / 一致性 详细原理'),
-        ('03', '总体技术路线',
-         '四个关键算法的伪代码描述 · 六阶段实验流程与耗时分布 (拓扑构建 → 训练 → 仿真 → 出图)'),
-        ('04', '具体实现',
+        ('01', '研究背景与问题挑战',
+         '空天地一体化背景 · 代际异构现状 · 前期"静态互联"工作 · 动态场景下两类核心困境'),
+        ('02', '系统模型与四段式解决机制',
+         '从"静态可转换"升级到"持续可转换"：四段式机制因果链 + 系统建模 / 决策 / 迁移 / 一致性 详细原理'),
+        ('03', '算法设计与总体技术路线',
+         '四个关键算法的伪代码 · 实验流程总览与各阶段详细拆解 (拓扑构建 → 训练 → 仿真 → 出图)'),
+        ('04', '实验验证与性能评估',
          '合成 LEO 星座 + 6 方案 + 5 种子 + 9 指标 实验设计 · 训练 / 综合指标 / 关键可视化 三类结果'),
-        ('05', '结论',
-         '研究实现了什么 · 性能数字总结 · 可应用的实际场景 · 局限性与下一步工作'),
+        ('05', '总结与下一步工作',
+         '研究实现了什么 · AOS<->IPv6 场景下的性能数字 · 可应用的实际场景 · 局限与下一步工作'),
     ]
     y0 = 76
     for i, (num, title, desc) in enumerate(items):
@@ -205,17 +205,59 @@ def slide_03():
             '· 业务必须互通     ：长时间内两代体系并存，全量替换不现实，必须有“协议转换网关”。',
             fontsize=10.5, color=DARK, va='top', linespacing=1.55)
 
-    ax.text(x0, 30, '本工作在课题中的位置', fontsize=14, color=PURPLE, weight='bold')
+    ax.text(x0, 30, '破局：让新一代 IPv6 卫星扮演"协议转换网关"',
+            fontsize=14, color=PURPLE, weight='bold')
     ax.text(x0, 25,
-            '课题前序工作分别解决了 ① 网络层地址自动配置  与  ② 协议报文双向转换 (静态)。\n'
-            '本阶段聚焦 ③ 协议转换网关在 LEO 高动态下的服务连续性：无缝切换 + 状态一致性。',
+            '· 不替换、不并联，由新一代 IPv6 卫星在轨担任 AOS <-> IPv6 双向翻译中介；\n'
+            '· 既保留 AOS 存量业务的兼容性，又让 IPv6 互联网能反向接入卫星节点；\n'
+            '· 网关角色具备“可演进性”：随 IPv6 卫星部署密度增加而平滑扩展，无需地面改造。',
             fontsize=11, color=DARK, va='top', linespacing=1.55)
     save(fig, '03_background.png')
 
 # =========================================================
-# 04 现状
+# 04 前期工作：从"能通信"到"能转换"的静态互联闭环
 # =========================================================
+PRIOR_ADDR_IMG  = os.path.join(os.path.dirname(__file__), 'prior_addr_config.png')
+PRIOR_PROTO_IMG = os.path.join(os.path.dirname(__file__), 'prior_proto_convert.png')
+
 def slide_04():
+    fig, ax = new_slide()
+    header(ax, '前期工作：从“能通信”到“能转换”的静态互联闭环')
+
+    # 左：地址自动配置
+    panel(ax, 3.5, 18, 46, 65, fc='white', ec=PURPLE, lw=1.0)
+    ax.text(26.5, 80, '工作①  网络层地址自动配置',
+            ha='center', fontsize=13, color=PURPLE, weight='bold', zorder=10)
+    add_image(ax, PRIOR_ADDR_IMG, 5, 30, 43, 48)
+    ax.text(26.5, 25,
+            '解决“能通信”问题：突破无 MAC 环境下地址生成受限，\n'
+            '实现 AOS 节点的 IPv6 合法身份自动配置。',
+            ha='center', fontsize=10.5, color=DARK, va='top', linespacing=1.65, zorder=10)
+
+    # 右：协议报文转换
+    panel(ax, 50.5, 18, 46, 65, fc='white', ec='#3666b8', lw=1.0)
+    ax.text(73.5, 80, '工作②  AOS <-> IPv6 协议报文双向转换',
+            ha='center', fontsize=13, color='#3666b8', weight='bold', zorder=10)
+    add_image(ax, PRIOR_PROTO_IMG, 52, 30, 43, 48)
+    ax.text(73.5, 25,
+            '解决“能转换”问题：基于 SCID 映射，实现 AOS 帧与\n'
+            'IPv6 数据包的双向静态翻译与组装。',
+            ha='center', fontsize=10.5, color=DARK, va='top', linespacing=1.65, zorder=10)
+
+    # 底部总结框
+    title_panel(ax, 3.5, 4, 93, 12, '遗留挑战', color='#a52828', fc=LIGHT_RED)
+    ax.text(5, 11,
+            '上述两项工作假设 AOS 卫星与某一颗 IPv6 网关之间链路绝对稳定（静态场景）。\n'
+            '然而真实 LEO 星座处于高速运动中——单网关可见窗口仅 5–15 min，'
+            '窗口结束必须切换，业务连续性无从保证。这正是本课题阶段要解决的问题。',
+            fontsize=10.5, color=DARK, va='top', linespacing=1.7, zorder=10)
+    save(fig, '04_prior_work.png')
+
+
+# =========================================================
+# 05 现状
+# =========================================================
+def slide_05():
     fig, ax = new_slide()
     header(ax, '现状：协议转换网关——异构互联的关键中介')
 
@@ -272,12 +314,12 @@ def slide_04():
             '在 LEO 高动态、可见窗口受限、多副本并存条件下，\n'
             '提供端到端服务连续性 (零中断、零丢包、状态可证)。',
             fontsize=10, color=DARK, va='top', linespacing=1.7, zorder=10)
-    save(fig, '04_status.png')
+    save(fig, '05_status.png')
 
 # =========================================================
 # 05 困境①
 # =========================================================
-def slide_05():
+def slide_06():
     fig, ax = new_slide()
     header(ax, '困境①：翻译上下文 (TC) 丢失与硬切换丢包')
 
@@ -344,12 +386,12 @@ def slide_05():
             '只要不迁移上下文，每次切换仍丢约 15 万个 CCSDS 分片；\n'
             'MPTCP-style 的“迟滞 + 双路并行”在卫星确定性场景下反而触发频繁切换。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '05_problem_tc.png')
+    save(fig, '06_problem_tc.png')
 
 # =========================================================
 # 06 困境② VM
 # =========================================================
-def slide_06():
+def slide_07():
     fig, ax = new_slide()
     header(ax, '困境②：多覆盖网关并发  →  状态分裂与权威副本难题')
 
@@ -395,7 +437,7 @@ def slide_06():
             '· 副本数量需有上界 (Top-M)，否则在 16 颗候选下复制 / Gossip 开销线性爆炸；\n'
             '· 必须有统一的 TTL 与显式淘汰规则，保证副本仓库稳态可控。',
             fontsize=10.5, color=DARK, va='top', linespacing=1.55, zorder=10)
-    save(fig, '06_problem_multi.png')
+    save(fig, '07_problem_multi.png')
 
 
 def slide_06_OLD_VM_DEPRECATED():
@@ -440,12 +482,12 @@ def slide_06_OLD_VM_DEPRECATED():
             '· 必须把链路带宽 $B(t)$ 和切换截止时间 $T_{\\mathrm{phys}}$ 作为硬约束输入决策器；\n'
             '· 必须为多覆盖场景设计副本协议，保证多颗候选网关之间收敛到一致视图。',
             fontsize=10, color=DARK, va='top', linespacing=1.55)
-    save(fig, '06_problem_vm.png')
+    save(fig, '07_problem_vm.png')
 
 # =========================================================
 # 07 解决思路
 # =========================================================
-def slide_07():
+def slide_08():
     fig, ax = new_slide()
     header(ax, '解决思路：四段式机制总览 (每一步为什么必须是这一步)')
 
@@ -507,12 +549,12 @@ def slide_07():
                 color=color, weight='bold', zorder=11)
         ax.text(13.5, y - 2.7, body, fontsize=10, color=DARK, va='center', linespacing=1.55, zorder=10)
 
-    save(fig, '07_overview.png')
+    save(fig, '08_overview.png')
 
 # =========================================================
 # 08 详细原理①：系统模型 + TC
 # =========================================================
-def slide_08():
+def slide_09():
     fig, ax = new_slide()
     header(ax, '详细原理①：系统模型与翻译上下文数据结构')
 
@@ -576,12 +618,12 @@ def slide_08():
             '    snapshot()  /  diff_bytes_since(prev)\n'
             '    complete_packets()  /  num_partial()',
             fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-    save(fig, '08_principle_model.png')
+    save(fig, '09_principle_model.png')
 
 # =========================================================
 # 09 详细原理②：Lyapunov
 # =========================================================
-def slide_09():
+def slide_10():
     fig, ax = new_slide()
     header(ax, r'详细原理②：Lyapunov drift-plus-penalty 在线决策')
 
@@ -670,12 +712,12 @@ def slide_09():
             '小结：Lyapunov 决策器既给出可证上界，又是“专家信号”，\n'
             '其轨迹直接被下一节的模仿学习网络消化为可上星的轻量策略。',
             fontsize=10, color=GRAY, va='top', linespacing=1.6, style='italic', zorder=10)
-    save(fig, '09_principle_lyapunov.png')
+    save(fig, '10_principle_lyapunov.png')
 
 # =========================================================
 # 10 详细原理③：IL
 # =========================================================
-def slide_10():
+def slide_11():
     fig, ax = new_slide()
     header(ax, '详细原理③：模仿学习策略网络 (面向星上部署)')
 
@@ -740,12 +782,12 @@ def slide_10():
             '· 推理延迟可上界，满足星载实时性硬约束；\n'
             '· 与 Lyapunov 决策在策略空间上完全一致，无精度损失。',
             fontsize=9.8, color=DARK, va='top', linespacing=1.65, zorder=10)
-    save(fig, '10_principle_il.png')
+    save(fig, '11_principle_il.png')
 
 # =========================================================
 # 11 详细原理④：两阶段迁移
 # =========================================================
-def slide_11():
+def slide_12():
     fig, ax = new_slide()
     header(ax, '详细原理④：两阶段协议转换状态迁移')
 
@@ -849,12 +891,12 @@ def slide_11():
             '即：把“一次性大停机”拆成“多次小拷贝 + 一次微小同步”，\n'
             r'实现 Make-before-Break — 零中断 / 零丢包的根本来源。',
             fontsize=8.8, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
-    save(fig, '11_principle_twophase.png')
+    save(fig, '12_principle_twophase.png')
 
 # =========================================================
 # 12 详细原理⑤：三层降级
 # =========================================================
-def slide_12():
+def slide_13():
     fig, ax = new_slide()
     header(ax, '详细原理⑤：三层降级策略 (卫星场景独有设计)')
 
@@ -894,12 +936,12 @@ def slide_12():
             '· 设单分片重组需 $n$ 片，已收到 $k$ 片；若 $k/n\\geq 0.5$，迁移已收到部分的字节代价 < 全部重传代价；\n'
             '· 5 种子 × 30 min 仿真中，本机制使所有切换稳定走 L1 路径，未触发任何 L2/L3/L4 — 三层降级是兜底而非常态。',
             fontsize=9.8, color=DARK, va='top', linespacing=1.55, zorder=10)
-    save(fig, '12_principle_degrade.png')
+    save(fig, '13_principle_degrade.png')
 
 # =========================================================
 # 13 详细原理⑥：Top-M + Gossip
 # =========================================================
-def slide_13():
+def slide_14():
     fig, ax = new_slide()
     header(ax, '详细原理⑥：Top-M 乐观复制 + Lamport-Gossip 最终一致')
 
@@ -975,12 +1017,12 @@ def slide_13():
             '实测 (30 min)：179 轮 Gossip / 安装 1 副本 / 淘汰 1 个；\n'
             '三条路径 (写、传播、淘汰) 全部打通；总开销 << ISL 带宽。',
             fontsize=10, color='#2e7d4f', va='top', linespacing=1.55, style='italic')
-    save(fig, '13_principle_gossip.png')
+    save(fig, '14_principle_gossip.png')
 
 # =========================================================
 # 14 关键算法伪代码
 # =========================================================
-def slide_14():
+def slide_15():
     fig, ax = new_slide()
     header(ax, '关键算法伪代码')
 
@@ -1058,12 +1100,12 @@ def slide_14():
     for i, t in enumerate(feats):
         ax.text(52.5, 33 - i*3.6, '•', fontsize=11, color=GOLD, va='center', zorder=10)
         ax.text(54.5, 33 - i*3.6, t, fontsize=10, color=DARK, va='center', zorder=10)
-    save(fig, '14_pseudocode.png')
+    save(fig, '15_pseudocode.png')
 
 # =========================================================
 # 15 实验设计
 # =========================================================
-def slide_15():
+def slide_16():
     fig, ax = new_slide()
     header(ax, '实验设计：合成星座 + 6 方案对比 + 5 种子统计')
 
@@ -1127,12 +1169,12 @@ def slide_15():
             '迁移分片数、平均/最差 reward、决策延迟 (CPU/GPU)、Gossip 收敛轮数、各阶段时长。\n'
             '统计方法：5 个独立测试种子 → mean ± std；显著性差异采用配对 t-test (本工作 vs MPTCP)。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '15_exp_design.png')
+    save(fig, '16_exp_design.png')
 
 # =========================================================
 # 16 实验流程（重点：每步多文字）
 # =========================================================
-def slide_16():
+def slide_17():
     """实验流程总览 — 6 个阶段一句话概括，后续 17-22 单独展开"""
     fig, ax = new_slide()
     header(ax, '实验流程总览  ( RTX 4090 · 共 6 个 Stage · 后续 6 页逐一展开 )')
@@ -1165,10 +1207,10 @@ def slide_16():
         ax.text(19, y - 2.3, name, fontsize=12, color=PURPLE, weight='bold', va='top', zorder=10)
         ax.text(19, y - 5.5, brief, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
         # 详见 →
-        ax.text(94, y - 4.2, '→ 详见 P.' + str(17 + i),
+        ax.text(94, y - 4.2, '→ 详见 P.' + str(18 + i),
                 fontsize=9.5, color=ec, ha='right', va='center', style='italic', zorder=10)
 
-    save(fig, '16_exp_flow.png')
+    save(fig, '17_exp_flow.png')
 
 
 # ============ 实验流程  Stage 1-6 逐页详细展开 ============
@@ -1206,7 +1248,7 @@ def _stage_detail_layout(ax, stage_no, name, color, fc_light, dur,
     ax.text(51.5, 11.5, extra, fontsize=9.4, color=DARK, va='top', linespacing=1.6, zorder=10)
 
 
-def slide_17():
+def slide_18():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 1', '拓扑构建 (orbit + topology)', '#3666b8', LIGHT_BLUE, '5 s',
@@ -1239,10 +1281,10 @@ def slide_17():
         extra='RTX 4090 上 5 s 内完成；Stage 1 失败会导致后续全部阶段不可用，\n'
               '故脚本对 visibility / remaining 做了一致性自检，含 31 个单元测试。'
     )
-    save(fig, '17_flow_stage1.png')
+    save(fig, '18_flow_stage1.png')
 
 
-def slide_18():
+def slide_19():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 2', 'Lyapunov 专家轨迹生成 + IL 模仿训练', PURPLE, LIGHT_PURPLE, '30 s',
@@ -1274,10 +1316,10 @@ def slide_18():
         extra='RTX 4090 上 30 s 内完成；显存峰值 < 1.5 GB。\n'
               '若改为纯 CPU 训练，时间约 4 min — 仍属于可接受范围。'
     )
-    save(fig, '18_flow_stage2.png')
+    save(fig, '19_flow_stage2.png')
 
 
-def slide_19():
+def slide_20():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 3', 'DQN 消融训练', '#c8651f', LIGHT_ORANGE, '13 min',
@@ -1308,10 +1350,10 @@ def slide_19():
         extra='RTX 4090 上 13 min；若用 RTX 3060 约 35 min。\n'
               '消融结果：DQN reward 是 IL 专家的 4.7× 差 — 强证明决策框架本身就比 DRL 更适合本场景。'
     )
-    save(fig, '19_flow_stage3.png')
+    save(fig, '20_flow_stage3.png')
 
 
-def slide_20():
+def slide_21():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 4', '6 方案 × 5 种子 = 30 次 SimPy 仿真', '#2e7d4f', LIGHT_GREEN, '1.5 min',
@@ -1341,10 +1383,10 @@ def slide_20():
         extra='RTX 4090 利用率 ~0 % (本阶段是 CPU 仿真，GPU 仅做 IL 推理)；\n'
               '内存峰值 ~600 MB，可在 8 GB RAM 笔记本完整复现。'
     )
-    save(fig, '20_flow_stage4.png')
+    save(fig, '21_flow_stage4.png')
 
 
-def slide_21():
+def slide_22():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 5', '推理延迟基准 (CPU / GPU benchmark)', GOLD, LIGHT_GOLD, '10 s',
@@ -1372,10 +1414,10 @@ def slide_21():
         extra='RTX 4090 推理峰值显存 < 50 MB；CPU 单核占用 ~25 %。\n'
               '换到星载等级的 Cortex-A72 CPU 估计推理仍 < 2 ms — 仍远低于 1 s 决策周期。'
     )
-    save(fig, '21_flow_stage5.png')
+    save(fig, '22_flow_stage5.png')
 
 
-def slide_22():
+def slide_23():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 6', '指标聚合、出图与报告生成', '#a52828', LIGHT_RED, '< 10 s',
@@ -1409,12 +1451,12 @@ def slide_22():
         extra='< 10 s 即可完成；不依赖 GPU。\n'
               '生成的报告是写大论文 / 投稿 / 阶段汇报的“唯一事实源”。'
     )
-    save(fig, '22_flow_stage6.png')
+    save(fig, '23_flow_stage6.png')
 
 # =========================================================
 # 17 实验结果①：训练
 # =========================================================
-def slide_23():
+def slide_24():
     fig, ax = new_slide()
     header(ax, '实验结果①：训练阶段产出与 DQN 消融')
 
@@ -1468,12 +1510,12 @@ def slide_23():
             '说明 IL 网络的“信息瓶颈”不是模型容量，而是专家轨迹本身的最优 action 在状态空间上是几乎可分的；\n'
             '这也解释了 DQN 学不好的原因：reward 信号弱，但监督信号一旦给到，就能瞬间学会。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '23_train_results.png')
+    save(fig, '24_train_results.png')
 
 # =========================================================
 # 18 主表
 # =========================================================
-def slide_24():
+def slide_25():
     fig, ax = new_slide()
     header(ax, '实验结果②：测试综合指标  (5 seed mean ± std)')
 
@@ -1515,12 +1557,12 @@ def slide_24():
     for i, t in enumerate(bullets):
         ax.text(5.5, 35 - i*4.5, '•', fontsize=12, color=GOLD)
         ax.text(7.5, 35 - i*4.5, t, fontsize=11, color=DARK, va='center')
-    save(fig, '24_main_table.png')
+    save(fig, '25_main_table.png')
 
 # =========================================================
 # 19 关键可视化
 # =========================================================
-def slide_25():
+def slide_26():
     fig, ax = new_slide()
     header(ax, '实验结果③：关键可视化  (4 张图逐图解读)')
 
@@ -1554,12 +1596,12 @@ def slide_25():
         # 文字解读（底部 7 单位高）
         ax.text(cx + 1.5, cy + 6.5, an, fontsize=9.5, color=DARK,
                 va='top', linespacing=1.55, zorder=10)
-    save(fig, '25_visualizations.png')
+    save(fig, '26_visualizations.png')
 
 # =========================================================
 # 20 结论
 # =========================================================
-def slide_26():
+def slide_27():
     fig, ax = new_slide()
     header(ax, '结论')
 
@@ -1656,16 +1698,16 @@ def slide_26():
         ax.text(53.5, y, '·', fontsize=11, color='#3666b8', va='center', zorder=10)
         ax.text(55.5, y, t, fontsize=9.2, color=DARK, va='center', zorder=10)
 
-    save(fig, '26_conclusion.png')
+    save(fig, '27_conclusion.png')
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     for fn in [slide_01, slide_02, slide_03, slide_04, slide_05, slide_06,
                slide_07, slide_08, slide_09, slide_10, slide_11, slide_12,
-               slide_13, slide_14, slide_15, slide_16,
-               slide_17, slide_18, slide_19, slide_20, slide_21, slide_22,
-               slide_23, slide_24, slide_25, slide_26]:
+               slide_13, slide_14, slide_15, slide_16, slide_17,
+               slide_18, slide_19, slide_20, slide_21, slide_22, slide_23,
+               slide_24, slide_25, slide_26, slide_27]:
         fn()
 
 if __name__ == '__main__':
