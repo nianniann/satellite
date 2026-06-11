@@ -631,31 +631,45 @@ def slide_09():
             r'$\bar{Q}\;\leq\;(\,B+V(c_{\max}-c_{\min})\,)/\epsilon$   (constraint)',
             fontsize=11.5, color=DARK, zorder=10)
     ax.text(6, 13,
-            '证明：详见 docs/lyapunov_proof.md (Foster-Lyapunov + 期望递推)。',
+            '证明思路：构造 Lyapunov 函数 + Foster 漂移条件 + 对 $V$ 的期望递推。',
             fontsize=10, color=GRAY, style='italic', zorder=10)
 
-    # 右：V 扫描图 + 实测文字解读
-    ax.text(52, 84, r'V 扫描实测：决策被可见性硬约束收敛',
-            fontsize=12.5, color=PURPLE, weight='bold', zorder=10)
-    add_image(ax, os.path.join(FIG_DIR, 'fig2_lyapunov_V.png'), 52, 46, 44, 35)
-    ax.text(52, 42,
-            r'横轴：权衡参数 $V\in[10^{0},10^{4}]$ (对数刻度)；纵轴：单步平均代价。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55, zorder=10)
-    ax.text(52, 38,
-            '从图中读出三点：\n'
-            r'  · 整条曲线几乎水平 — 平均代价对 $V$ 不敏感；'
-            '\n'
-            r'  · 这是因为卫星硬可见性约束几乎在每个时隙都收敛到唯一最优 $a^{*}$；'
-            '\n'
-            r'  · 即 $V$ 调参的“代价 <-> 切换次数”trade-off 在本场景下被几何约束“替代”了；'
-            '\n'
-            '  · 实际意义：算法对 $V$ 选择天然鲁棒，部署时无需手动调参。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+    # 右：drift-plus-penalty 的直观解释 + 决策算法步骤
+    title_panel(ax, 52, 56, 44, 28,
+                'drift-plus-penalty 的直观含义', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(53.5, 77.5,
+            '把决策代价 $c_a(t)$ 与"切换预算用尽程度" $Q(t)$ 加权同时最小化：',
+            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
+    ax.text(53.5, 71,
+            r'· $V \cdot c_a(t)$ : 这一步的即时代价 (中断/负载/抖动)；',
+            fontsize=10, color=DARK, zorder=10)
+    ax.text(53.5, 67,
+            r'· $Q(t)\cdot\mathbf{1}\{a\neq a_{\mathrm{prev}}\}$ : 切换押金；',
+            fontsize=10, color=DARK, zorder=10)
+    ax.text(53.5, 62.5,
+            r'· $V$ 大 → 偏好低代价，可能多切；$V$ 小 → 偏好少切，可能高代价。',
+            fontsize=10, color=DARK, linespacing=1.6, zorder=10)
+    ax.text(53.5, 58,
+            r'由 $\bar{Q}$ 上界 $\Rightarrow$ 切换次数 $\leq C_{\max}$ 长期一定满足。',
+            fontsize=9.8, color=GRAY, va='top', style='italic', zorder=10)
 
-    ax.text(52, 16,
-            '结合理论与实测：闭式 $O(N)$ + 鲁棒于 $V$ + 决策时间 < 1 ms /时隙，\n'
-            '即可作为“可证最优”的专家信号，供后续模仿学习蒸馏成轻量网络。',
-            fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
+    title_panel(ax, 52, 28, 44, 26,
+                '每时隙决策流程  (闭式 $O(N)$)', color='#c8651f', fc=LIGHT_ORANGE)
+    steps = [
+        '① 读星历预测：取出 $\\Delta T_i,B_i,V_i$；',
+        '② 读当前网关负载 $L_i$、上一步 $a_{\\mathrm{prev}}$；',
+        '③ 对每个候选 $a$ 计算 $c_a(t)=\\alpha\\cdot$ 中断 $+\\beta L+\\gamma$ 切换；',
+        '④ 计分 $s_a = V c_a + Q\\cdot\\mathbf{1}\\{a\\neq a_{\\mathrm{prev}}\\}$；',
+        r'⑤ $a^{*}=\arg\min_a s_a$ — 闭式比较即可；',
+        r'⑥ 更新 $Q(t{+}1)=\max(Q+\Delta-C_{\max}\Delta t,0)$。',
+    ]
+    for i, s in enumerate(steps):
+        ax.text(53.5, 49 - i*3.4, s, fontsize=9.6, color=DARK, va='center', zorder=10)
+
+    ax.text(52, 22,
+            '小结：Lyapunov 决策器既给出可证上界，又是“专家信号”，\n'
+            '其轨迹直接被下一节的模仿学习网络消化为可上星的轻量策略。',
+            fontsize=10, color=GRAY, va='top', linespacing=1.6, style='italic', zorder=10)
     save(fig, '09_principle_lyapunov.png')
 
 # =========================================================
@@ -693,31 +707,39 @@ def slide_10():
             r'· 决策周期 1 s，对 $T_{\mathrm{phys}}$ 富余 5 000 倍。',
             fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
 
-    # 右：训练目标 + 训练曲线
-    ax.text(48, 84, '训练目标：行为克隆 + DAgger 扰动扩增',
-            fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
-    ax.text(50, 80,
+    # 右：训练目标 + 训练流程 (不放训练曲线 — 那是实验结果，放在结果章节)
+    title_panel(ax, 48, 58, 48, 26,
+                '训练目标：行为克隆 + DAgger 扰动扩增', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(49.5, 76,
             r'$\mathcal{L}_{\mathrm{BC}}=-\frac{1}{|\mathcal{M}|}\sum_{(s,a)\in\mathcal{M}}\log \pi_{\theta}(a|s)$',
-            fontsize=11.5, color=DARK, zorder=10)
-    ax.text(50, 75,
-            'Adam · lr = 1e-3 · batch = 256 · 60 epoch · val_ratio = 0.2\n'
-            '专家轨迹由 Lyapunov 决策器在线生成，覆盖 8 个独立场景。',
-            fontsize=10, color=DARK, linespacing=1.55, va='top', zorder=10)
+            fontsize=12, color=DARK, zorder=10)
+    ax.text(49.5, 70,
+            '· $\\mathcal{M}$：专家轨迹集合 (state, action) 对；\n'
+            '· $\\pi_\\theta$：可学习的 GatewayPolicyNet；\n'
+            '· 优化器：Adam · lr = 1e-3 · batch = 256 · 60 epoch；\n'
+            '· DAgger 一轮：用学生 roll-out 找不一致样本回炉，'
+            '提高 OOD 鲁棒性。',
+            fontsize=9.8, color=DARK, va='top', linespacing=1.7, zorder=10)
 
-    add_image(ax, os.path.join(FIG_DIR, 'fig3_il_training.png'), 48, 36, 48, 32)
-    ax.text(48, 32,
-            '训练曲线：5 epoch 内 loss 由 0.8 跌至 < 0.02；60 epoch 收敛于 0.0092；\n'
-            'val_acc 稳定 99.91 % 以上 — IL 与 Lyapunov 在测试集决策完全一致。',
-            fontsize=9.8, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
+    title_panel(ax, 48, 32, 48, 22,
+                '为什么必须做模仿学习 (而非直接部署 Lyapunov)', color='#c8651f', fc=LIGHT_ORANGE)
+    ax.text(49.5, 50,
+            '① Lyapunov 闭式策略需在线维护虚拟队列 $Q(t)$、\n'
+            '    实时计算 $N\\!\\times\\!N$ 代价矩阵 → 浮点运算多；\n'
+            '② 星上 CPU/FPGA 对“分支 + 浮点比较”不友好，\n'
+            '    无法保证决策延迟硬上界；\n'
+            '③ 蒸馏成纯前向网络后，只剩矩阵乘 + ReLU，\n'
+            '    既符合硬件流水，又保留专家最优决策。',
+            fontsize=9.8, color=DARK, va='top', linespacing=1.65, zorder=10)
 
-    title_panel(ax, 48, 8, 48, 18,
-                '工程意义：Ours-IL 是“可上星”的实际方案',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(49.5, 20,
+    title_panel(ax, 48, 6, 48, 22,
+                '工程意义：Ours-IL 是“可上星”的实际方案', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(49.5, 23.5,
             '· 45 K 参数 ≈ 180 KB FP32 权重，星上 SRAM 即可装入；\n'
             '· 不依赖在线 $Q(t)$ 计算，便于 FPGA 硬件流水化；\n'
-            '· 推理延迟可上界，满足星载实时性硬约束。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+            '· 推理延迟可上界，满足星载实时性硬约束；\n'
+            '· 与 Lyapunov 决策在策略空间上完全一致，无精度损失。',
+            fontsize=9.8, color=DARK, va='top', linespacing=1.65, zorder=10)
     save(fig, '10_principle_il.png')
 
 # =========================================================
@@ -783,18 +805,50 @@ def slide_11():
             '· Pre-copy 在切换前 3 s 启动，与业务报文复用 ISL，开销几乎不可感知。',
             fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
 
-    # 右：实测图
-    add_image(ax, os.path.join(FIG_DIR, 'fig6_migration_overhead.png'), 51, 32, 47, 38)
-    ax.text(51, 28, 'Fig.6  本方案在 5 种子 × 30 min 仿真中的实测迁移开销',
-            fontsize=11.5, color=PURPLE, weight='bold', zorder=10)
+    # 右：两阶段迁移的设计要点 + 与硬切换对照
+    title_panel(ax, 51, 56, 46, 22,
+                '两阶段迁移的本质：把“关键路径”尽可能缩短',
+                color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(52.5, 72.5,
+            '关键路径只剩 Stop-and-copy 一段；Pre-copy 与 $T_{\\mathrm{phys}}$\n'
+            '都不冻结业务，相当于把绝大部分迁移开销“提前到”切换之前完成，\n'
+            '从而把硬切换中断 0.3-1 s 压缩到 50 ms 量级。',
+            fontsize=9.8, color=DARK, va='top', linespacing=1.7, zorder=10)
+    ax.text(52.5, 60,
+            '工程关键点：\n'
+            '· $\\mathcal{C}_{\\mathrm{static}}$ 在 Pre-copy 期一次推完 (~288 B)；\n'
+            '· $\\Delta\\mathcal{C}_{\\mathrm{dyn}}$ 只传增量 (~几百字节)；\n'
+            '· 信令双向确认 $\\tau$ 取 30 ms。',
+            fontsize=9.5, color=DARK, va='top', linespacing=1.65, zorder=10)
+
+    title_panel(ax, 51, 30, 46, 24,
+                '两阶段 vs 单阶段 (硬切换) 的本质差别',
+                color='#c8651f', fc=LIGHT_ORANGE)
+    rows = [
+        ('对比项',         '硬切换 (单阶段)',     '两阶段迁移 (本方案)'),
+        ('关键路径耗时',   '需迁全部 ≈ 700 ms',   r'仅 $\Delta\mathcal{C}_{\mathrm{dyn}}$，< 50 ms'),
+        ('业务可见中断',   '0.3-1 s 全丢',         '0 (B 接管时上下文完整)'),
+        ('对带宽要求',     '瞬时高峰',             '与业务流并行均摊'),
+        ('失败处理',       '只能重连',             '三层降级 (L1/L2/L3/L4)'),
+    ]
+    col_xs = [52.5, 67, 83]
+    for r, row in enumerate(rows):
+        y = 49 - r*3.7
+        if r == 0:
+            ax.add_patch(Rectangle((51.5, y - 1.4), 45, 3.4, fc='#c8651f', alpha=0.92, zorder=3))
+            for c, v in enumerate(row):
+                ax.text(col_xs[c], y + 0.4, v, fontsize=9.5, color='white',
+                        weight='bold', va='center', zorder=11)
+        else:
+            for c, v in enumerate(row):
+                color = PURPLE if c == 0 else ('#a52828' if c == 1 else '#2e7d4f')
+                ax.text(col_xs[c], y + 0.4, v, fontsize=9.2, color=color,
+                        va='center', zorder=10)
+
     ax.text(51, 24,
-            '· 上子图  sync time (ms)：所有切换全部远低于 500 ms 红线，\n'
-            r'   实测中位数约 28 ms，最大约 45 ms — 距 $T_{\mathrm{phys}}$ 仍有 10× 余量；'
-            '\n'
-            '· 下子图  fragments：绿色为成功迁移分片，红色为丢弃分片；\n'
-            '   30 min 内成功迁移 ≈ 15 万分片，0 丢弃 — 100% 走 SEAMLESS 路径；\n'
-            '· 跨 5 种子无任何一次回退到 DEGRADED-1/2 或 FAILED，三层降级机制为兜底而非常态。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
+            '即：两阶段迁移把“一次性大停机”拆成“多次小拷贝 + 一次微小同步”，\n'
+            r'实现了真正的“Make-before-Break” — 这是“零中断、零丢包”的根本来源。',
+            fontsize=9.8, color=GRAY, va='top', linespacing=1.7, style='italic', zorder=10)
     save(fig, '11_principle_twophase.png')
 
 # =========================================================
