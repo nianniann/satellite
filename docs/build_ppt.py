@@ -224,7 +224,115 @@ def slide_08():
 # 08 详细原理①：系统模型 + TC
 # =========================================================
 def slide_09():
-    image_slide('09_principle_model.png', '09_principle_model.png')
+    fig, ax = new_slide()
+    header(ax, '详细原理①：系统模型与即时代价函数')
+
+    # ===== 左：星座构型 + 时间离散化 =====
+    title_panel(ax, 4, 56, 46, 28, '系统建模', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(5.5, 78,
+            '· AOS 卫星：1 颗，轨道高度 400 km；',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 74.5,
+            '· IPv6 网关卫星：16 颗，轨道高度 550 km，',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 71,
+            '  同倾角面、等 RAAN 间距均匀分布；',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 67,
+            '· 时间离散化：时隙长度 1 秒；',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 63.5,
+            '· 决策变量：每秒选哪一颗 IPv6 网关。',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 59.5,
+            r'每颗候选 $g_i$ 的状态量：距离 $D_i$、剩余可见时长 $\Delta T_i$、'
+            'ISL 带宽、CPU 负载。',
+            fontsize=9.6, color=GRAY, va='center', style='italic', zorder=10)
+
+    # ===== 左下：星间可见性约束 =====
+    title_panel(ax, 4, 28, 46, 26,
+                '星间可见性约束（避大气切线高度）',
+                color='#c8651f', fc=LIGHT_ORANGE)
+    ax.text(5.5, 48,
+            '· 传统的"仰角 ≥ 10°"是地面对卫星的约束，',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 44.5,
+            '  目的是避地面建筑遮挡与低空大气折射；',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 41,
+            '· 星间链路不存在"仰角"概念，应改用',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 37.5,
+            '  "LoS 不被大气遮挡"准则；',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 33,
+            r'· 取大气边界 $h_{\mathrm{atm}}=80$ km，可得',
+            fontsize=10, color=PURPLE, weight='bold', va='center', zorder=10)
+    ax.text(5.5, 30,
+            r'  $D_{\max}\approx 4567$ km；',
+            fontsize=10.2, color=DARK, va='center', zorder=10)
+
+    # ===== 右上：即时代价 c(t) =====
+    title_panel(ax, 52, 50, 44, 34, '即时代价  $c(t)$  的设计', color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(53.5, 78,
+            r'$c(t)\;=\;\alpha\cdot$ 中断罚 $+\;\beta\cdot$ 拥塞罚 $+\;\gamma\cdot$ 切换罚',
+            fontsize=11, color=DARK, zorder=10)
+    items = [
+        ('中断罚', '#a52828', '1.0',
+         '若候选网关已不可见，或剩余可见时长不足阈值（如 5 秒，\n'
+         '不够安全完成两阶段迁移），则该项 = 1；否则 = 0。'),
+        ('拥塞罚', '#c8651f', '0.3',
+         r'即候选网关的 CPU 负载 $L_i\in[0,1]$；'
+         '\n'
+         '负载越高、拥塞惩罚越大，自然避开"扎堆"网关。'),
+        ('切换罚', '#3666b8', '0.5',
+         '若本时隙选了与上一时隙不同的网关，该项 = 1；否则 = 0。\n'
+         '用于抑制频繁切换、避免乒乓现象。'),
+    ]
+    for i, (label, color, w, body) in enumerate(items):
+        y = 70 - i*8.5
+        ax.add_patch(FancyBboxPatch((53.5, y - 2.4), 9, 5,
+                                    boxstyle='round,pad=0.2,rounding_size=0.4',
+                                    fc=color, ec=color, alpha=0.9, zorder=3))
+        ax.text(58, y + 0.1, label, ha='center', va='center',
+                fontsize=10, color='white', weight='bold', zorder=11)
+        ax.text(64, y + 2.0, f'权重 = {w}',
+                fontsize=9.5, color=color, weight='bold', va='center', zorder=10)
+        ax.text(64, y - 1.5, body, fontsize=9.3, color=DARK, va='center',
+                linespacing=1.55, zorder=10)
+
+    # ===== 右下：长期目标 + 说明 =====
+    title_panel(ax, 52, 4, 44, 42, '长期目标', color='#2e7d4f', fc=LIGHT_GREEN)
+    ax.text(53.5, 40,
+            r'$\min_{a(\cdot)}\;\bar c \;=\; \lim_{T\to\infty}\;\frac{1}{T}\sum_{t=0}^{T-1} c(t)$,'
+            r'   s.t.   $\bar s_{\mathrm{sw}}\;\leq\;C_{\max}$',
+            fontsize=10.5, color=DARK, zorder=10)
+    ax.text(53.5, 35,
+            '即在长期平均代价尽量小的同时，',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 32,
+            '保证切换总次数不超出预算 $C_{\\max}$。',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 27,
+            r'三项均做了量纲归一，使代价不依赖星座规模；',
+            fontsize=9.6, color=GRAY, va='center', style='italic', zorder=10)
+    ax.text(53.5, 24,
+            '权重 (α, β, γ) 可根据场景做敏感性分析。',
+            fontsize=9.6, color=GRAY, va='center', style='italic', zorder=10)
+
+    ax.text(53.5, 18,
+            '设计意图：',
+            fontsize=10.2, color='#2e7d4f', weight='bold', zorder=10)
+    ax.text(53.5, 14.5,
+            '· 中断罚最大（α = 1.0）：决不能让业务中断；',
+            fontsize=9.5, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 11.5,
+            '· 拥塞罚次之（β = 0.3）：均衡所有网关；',
+            fontsize=9.5, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 8.5,
+            '· 切换罚（γ = 0.5）：避免乒乓抖动。',
+            fontsize=9.5, color=DARK, va='center', zorder=10)
+    save(fig, '09_principle_model.png')
 
 
 # =========================================================
