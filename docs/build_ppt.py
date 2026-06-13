@@ -563,16 +563,15 @@ def slide_15():
 # =========================================================
 def slide_16():
     fig, ax = new_slide()
-    header(ax, '实验设计：合成星座 + 6 方案对比 + 5 种子统计')
+    header(ax, '实验设计：合成星座 + 4 方案对比 + 5 个独立测试场次')
 
     # 左：实验场景
-    ax.text(5, 82, '实验场景  (orbit/synth_constellation.py)',
-            fontsize=12.5, color=PURPLE, weight='bold')
+    ax.text(5, 82, '实验场景', fontsize=12.5, color=PURPLE, weight='bold')
     rows = [
         ('AOS 卫星',     r'1 颗  极轨 $i=87^\circ$  高度 400 km'),
         ('IPv6 网关',    r'16 颗 $i=53^\circ$  高度 550 km  等 RAAN 间距'),
-        ('ISL 最大距离', r'$D_{\max}=3500$ km  →  每时隙可见 0–5 颗 (均值 2.1)'),
-        ('仿真时长',     '训练 3600 s × 8 种子  /  测试 1800 s × 5 种子'),
+        ('ISL 最大距离', r'$D_{\max}=3500$ km  (保守工程取值)'),
+        ('仿真时长',     '训练 3600 s × 8 场次 / 测试 1800 s × 5 场次'),
         ('AOS 帧速率',   '300 帧 / 秒'),
         ('决策时隙',     r'1 s   物理切换窗口 $T_{\mathrm{phys}}=500$ ms'),
     ]
@@ -585,440 +584,260 @@ def slide_16():
     ax.text(55, 82, '实验环境', fontsize=12.5, color=PURPLE, weight='bold')
     env = [
         ('GPU',     'NVIDIA RTX 4090 (24 GB) × 1'),
-        ('OS',      'Linux 5.10 (AliOS 8)'),
+        ('OS',      'Linux 5.10'),
         ('Python',  '3.10  +  torch 2.8 cu128'),
-        ('仿真器',  'SimPy 4.1 事件驱动'),
-        ('轨道库',  'Skyfield 1.54  +  合成 TLE'),
-        ('绘图',    'matplotlib 3.10  +  TensorBoard 2.20'),
+        ('仿真器',  'SimPy 4.1 离散事件驱动'),
+        ('轨道库',  'Skyfield 1.54 + 合成 TLE'),
+        ('绘图',    'matplotlib 3.10 + TensorBoard 2.20'),
     ]
     for i, (k, v) in enumerate(env):
         y = 77 - i*4
         ax.text(56, y, k, fontsize=11, color=PURPLE, va='center', weight='bold')
         ax.text(64, y, v, fontsize=10.5, color=DARK, va='center')
 
-    # 下：6 方案对比表
-    ax.text(5, 50, '6 个对比方案', fontsize=12.5, color=PURPLE, weight='bold')
-    headers = ['方案', '决策算法', '状态迁移', '说明']
+    # 下：4 方案对比表
+    ax.text(5, 50, '4 个对比方案', fontsize=12.5, color=PURPLE, weight='bold')
+    headers = ['方案', '决策', '状态迁移', '说明']
     schemes = [
-        ('Reactive',      '当前网关失效才切',          '硬切',          '弱基线 — 几乎不主动迁移'),
-        ('Max-Visibility','贪心选 $\\Delta T$ 最大',   '硬切',          '强可见性贪心 — 不考虑负载'),
-        ('MPTCP-style',   '综合分 + 60 s 迟滞',        '硬切',          '强基线 — 地面 MPTCP 思想移植'),
-        ('Pure DRL (DQN)','与 Lyapunov 同状态空间',   '硬切',          '消融对比 — 验证决策框架本身'),
-        ('Ours-Lyap',     'Lyapunov 在线',             '两阶段 + 多副本','本方案 — 理论变体'),
-        ('Ours-IL',       '模仿学习',                  '两阶段 + 多副本','本方案 — 部署变体 (星上可用)'),
+        ('Reactive',       '当前网关失效才切',           '硬切',
+         '弱基线 — 被动式，几乎不主动迁移'),
+        ('Max-Visibility', r'贪心选 $\Delta T$ 最大',    '硬切',
+         '贪心基线 — 只看剩余可见时长，不考虑负载'),
+        ('MPTCP-style',    '综合分 + 60 s 迟滞',         '硬切',
+         '强基线 — 传统多路径思想移植'),
+        ('Ours',           '模仿学习网络 (IL)',          '两阶段 + 三层降级 + 多副本',
+         '本方案 — Lyapunov 离线 oracle 蒸馏后部署'),
     ]
-    col_xs = [5, 22, 45, 65]; y0 = 44
+    col_xs = [5, 22, 45, 70]; y0 = 44
     ax.add_patch(Rectangle((5, y0 - 1), 90, 3.5, fc=PURPLE))
     for c, h in enumerate(headers):
-        ax.text(col_xs[c] + 0.5, y0 + 0.7, h, fontsize=10.5, color='white', weight='bold', va='center')
+        ax.text(col_xs[c] + 0.5, y0 + 0.7, h, fontsize=10.5,
+                color='white', weight='bold', va='center')
     for r, row in enumerate(schemes):
-        y = y0 - 3.6 - r*3.6
-        if r % 2 == 0:
-            ax.add_patch(Rectangle((5, y - 1.4), 90, 3.4, fc=LIGHT_PURPLE))
+        y = y0 - 3.6 - r*4.5
+        is_ours = (r == len(schemes) - 1)
+        bg = LIGHT_GREEN if is_ours else (LIGHT_PURPLE if r % 2 == 0 else None)
+        if bg is not None:
+            ax.add_patch(Rectangle((5, y - 1.6), 90, 4.2, fc=bg))
         for c, v in enumerate(row):
-            color = '#2e7d4f' if r >= 4 and c == 0 else (PURPLE if c == 0 else DARK)
+            color = '#2e7d4f' if is_ours and c == 0 else (PURPLE if c == 0 else DARK)
             weight = 'bold' if c == 0 else 'normal'
-            ax.text(col_xs[c] + 0.5, y + 0.7, v, fontsize=10, color=color, weight=weight, va='center')
+            ax.text(col_xs[c] + 0.5, y + 0.7, v, fontsize=10,
+                    color=color, weight=weight, va='center')
 
-    ax.text(5, 14,
-            '指标体系 (共 9 项)：PLR (%)、端到端时延 (ms)、切换次数、总中断时长 (s)、'
-            '迁移分片数、平均/最差 reward、决策延迟 (CPU/GPU)、Gossip 收敛轮数、各阶段时长。\n'
-            '统计方法：5 个独立测试种子 → mean ± std；显著性差异采用配对 t-test (本工作 vs MPTCP)。',
-            fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
+    ax.text(5, 12,
+            '指标体系：丢包率 PLR (%)、端到端时延 (ms)、切换次数、总中断时长 (s)、迁移分片数、'
+            '平均奖励、决策延迟。\n'
+            '统计方法：5 个独立负载场次 → mean ± std；显著性比较采用配对 t-test (本方案 vs MPTCP)。',
+            fontsize=10, color=GRAY, va='top', linespacing=1.6, style='italic')
     save(fig, '16_exp_design.png')
 
+
 # =========================================================
-# 16 实验流程（重点：每步多文字）
+# 17 仿真系统架构与平台搭建
 # =========================================================
 def slide_17():
-    """实验流程总览 — 6 个阶段一句话概括，后续 17-22 单独展开"""
     fig, ax = new_slide()
-    header(ax, '实验流程总览  ( RTX 4090 · 共 6 个 Stage · 后续 6 页逐一展开 )')
+    header(ax, '高保真离散事件驱动仿真平台构建')
 
     ax.text(4, 84,
-            '完整实验由 6 个串行阶段组成，下游依赖上游产物 (.npz / .pt / .pkl)；\n'
-            '总耗时 ≈ 15 min，其中 Stage 3 (DQN 消融) 占绝大部分时间，IL 训练仅 30 s。',
-            fontsize=10.8, color=DARK, va='top', linespacing=1.55, zorder=10)
+            '为了让 4 种方案在严格同等条件下对比，我们自研了一套离散事件驱动的卫星协议转换\n'
+            '仿真平台，覆盖"轨道动力学 → 链路 → 协议栈 → 决策 → 状态迁移 → 指标"的端到端链路。',
+            fontsize=10.5, color=DARK, va='top', linespacing=1.65, zorder=10)
 
-    stages = [
-        ('Stage 1', '5 s',     '拓扑构建',           LIGHT_BLUE,   '#3666b8',
-         '调用 Skyfield 推算 16 网关 + 1 AOS 共 3601 时隙轨道，缓存 .npz。'),
-        ('Stage 2', '30 s',    'Lyapunov 专家 + IL 训练', LIGHT_PURPLE, PURPLE,
-         '8 场景 × 10 s 生成专家轨迹，蒸馏到 45 K MLP，val_acc 99.91 %。'),
-        ('Stage 3', '13 min',  'DQN 消融训练',       LIGHT_ORANGE, '#c8651f',
-         '15 epoch × 8 场景 × 3600 决策 ≈ 432 K 转移；验证 DRL 学不到最优。'),
-        ('Stage 4', '1.5 min', '30 次 SimPy 仿真',   LIGHT_GREEN, '#2e7d4f',
-         '6 方案 × 5 种子，每次 1800 s × 300 pps × 16 网关 ≈ 100 万事件。'),
-        ('Stage 5', '10 s',    '推理延迟基准',       LIGHT_GOLD,   GOLD,
-         'GPU / CPU 各 2000 次推理 + 200 次预热；统计 P50/P99/最大延迟。'),
-        ('Stage 6', '< 10 s',  '落盘 + 出图',        LIGHT_RED,    '#a52828',
-         '聚合 pkl/json/md；plot_figures.py 一次性生成 9 张实验图。'),
+    # ===== 左：平台分层 =====
+    title_panel(ax, 4, 28, 46, 50, '平台分层架构', color=PURPLE, fc=LIGHT_PURPLE)
+    layers = [
+        ('① 轨道动力学层', '#3666b8',
+         'Skyfield 1.54 + 合成 TLE，按 SGP4 推算\n'
+         '每秒位置；逐秒输出距离 / 可见性 / ΔT。'),
+        ('② 链路层', '#3666b8',
+         'ISL 带宽 = 反距离平方模型；\n'
+         '大气切线高度约束 (D_max ≈ 3500 km)。'),
+        ('③ 协议栈层', '#c8651f',
+         'AOS 帧 (256 B 定长) + IPv6 报文 (UDP/IPv6\n'
+         '封装)；CCSDS 跨帧分片重组与 M_PDU 处理。'),
+        ('④ 决策器层 (可插拔)', PURPLE,
+         '统一 Decider 接口；4 种实现并存：\n'
+         'Reactive / Max-Vis / MPTCP-style / Ours-IL。'),
+        ('⑤ 状态迁移层', '#c8651f',
+         '两阶段 Pre-copy + Stop-copy；\n'
+         '三层降级兜底；多副本 Gossip 同步。'),
+        ('⑥ 指标采集层', '#2e7d4f',
+         '逐秒记录 PLR / E2E / 切换 / 迁移 / 决策延迟，\n'
+         '聚合到 .pkl + JSON + Markdown 报告。'),
     ]
-    y_top = 72; row_h = 9.8
-    for i, (stage, dur, name, fc, ec, brief) in enumerate(stages):
-        y = y_top - i*row_h
-        panel(ax, 4, y - row_h + 1.5, 92, row_h - 1.8, fc=fc, ec=ec, lw=1.3)
-        ax.text(6, y - 2.3, stage, fontsize=12, color=ec, weight='bold', va='top', zorder=10)
-        ax.text(6, y - 5.5, dur,   fontsize=10, color=ec, va='top', zorder=10)
-        ax.text(19, y - 2.3, name, fontsize=12, color=PURPLE, weight='bold', va='top', zorder=10)
-        ax.text(19, y - 5.5, brief, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
-        # 详见 →
-        ax.text(94, y - 4.2, '→ 详见 P.' + str(18 + i),
-                fontsize=9.5, color=ec, ha='right', va='center', style='italic', zorder=10)
+    for i, (name, color, body) in enumerate(layers):
+        y = 73 - i * 7.5
+        ax.add_patch(FancyBboxPatch((5.5, y - 3.0), 13.5, 5.8,
+                                    boxstyle='round,pad=0.2,rounding_size=0.4',
+                                    fc=color, ec=color, alpha=0.92, zorder=3))
+        ax.text(12.2, y - 0.1, name, ha='center', va='center',
+                fontsize=9.5, color='white', weight='bold', zorder=11)
+        ax.text(20.5, y - 0.1, body, fontsize=9.3, color=DARK,
+                va='center', linespacing=1.55, zorder=10)
 
-    save(fig, '17_exp_flow.png')
+    # ===== 右上：仿真核心机制 =====
+    title_panel(ax, 52, 50, 44, 28,
+                'SimPy 离散事件驱动核心', color='#3666b8', fc=LIGHT_BLUE)
+    ax.text(53.5, 72,
+            '· **事件驱动** 而非时间步进：报文到达、可见性变化、\n'
+            '   切换触发、Gossip 周期均以"事件"入队；',
+            fontsize=9.5, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(53.5, 65,
+            '· **确定性可复现**：固定 seed → 完全相同的事件序列；',
+            fontsize=9.5, color=DARK, va='top', zorder=10)
+    ax.text(53.5, 61.5,
+            '· **微秒级时序精度**：事件队列按时间戳严格排序；',
+            fontsize=9.5, color=DARK, va='top', zorder=10)
+    ax.text(53.5, 58,
+            r'· **加速比 200×**：引入 $O(1)$ 完成检测后，',
+            fontsize=9.5, color=DARK, va='top', zorder=10)
+    ax.text(53.5, 54.5,
+            '   单次 30 min 仿真由 600 s → 3 s。',
+            fontsize=9.5, color=DARK, va='top', zorder=10)
+
+    # ===== 右下：规模 + 复现 =====
+    title_panel(ax, 52, 16, 44, 32, '仿真规模与可复现性',
+                color='#2e7d4f', fc=LIGHT_GREEN)
+    rows = [
+        ('单次仿真', '30 分钟 × 300 包/秒 × 16 候选 ≈ 100 万事件'),
+        ('独立场次', '5 个不同负载种子，结果取 mean ± std'),
+        ('方案规模', '4 种方案 × 5 场次 = 20 次仿真，约 90 秒完成'),
+        ('硬件需求', '单台 RTX 4090 + 8 GB RAM (可用普通笔记本)'),
+        ('一键复现', 'make full GPU=0 → 15 分钟产出全部图表'),
+        ('开源测试', '31 个单元测试覆盖关键路径'),
+    ]
+    for i, (k, v) in enumerate(rows):
+        y = 42 - i * 4
+        ax.text(53.5, y, '· ' + k + '：',
+                fontsize=9.7, color='#2e7d4f', weight='bold', va='center', zorder=10)
+        ax.text(66, y, v, fontsize=9.4, color=DARK, va='center', zorder=10)
+
+    # 底部一句话
+    panel(ax, 4, 4, 92, 9, fc=LIGHT_PURPLE, ec=PURPLE, lw=1.2)
+    ax.text(50, 8.5,
+            '设计准则：把"星历 / 协议栈 / 决策 / 迁移"完全解耦，新决策器只需实现 Decider 接口即可插入对比。',
+            ha='center', va='center', fontsize=11,
+            color=PURPLE, weight='bold', zorder=11)
+    save(fig, '17_sim_platform.png')
 
 
-# ============ 实验流程  Stage 1-6 逐页详细展开 ============
-
-def _stage_detail_layout(ax, stage_no, name, color, fc_light, dur,
-                         purpose, how, inputs, outputs, key_design, extra):
-    """通用模板：左侧目的+输入+输出，右侧 How（详细步骤）+ 关键设计点
-    布局重排：所有 panel 之间留 2 单位空白；body 文本起点 y + h - 5.5；行距 1.6"""
-    header(ax, f'实验流程  {stage_no}：{name}  ( 实测耗时 {dur} )')
-
-    # ============== 左列 ==============
-    # 左 1：目的  y=[60, 84]  h=24
-    title_panel(ax, 4, 60, 44, 24, '阶段目标与作用', color=color, fc=fc_light)
-    ax.text(5.5, 78.2, '目的：', fontsize=10.5, color=color, weight='bold', zorder=10)
-    ax.text(11, 78.2, purpose, fontsize=9.6, color=DARK, va='top', linespacing=1.65, zorder=10)
-
-    # 左 2：输入/输出  y=[34, 56]  h=22  (与左1留 4 单位)
-    title_panel(ax, 4, 34, 44, 22, '输入  /  输出', color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(5.5, 50.5, '输入：', fontsize=10, color=PURPLE, weight='bold', zorder=10)
-    ax.text(11, 50.5, inputs, fontsize=9.5, color=DARK, va='top', linespacing=1.6, zorder=10)
-    ax.text(5.5, 42, '输出：', fontsize=10, color=PURPLE, weight='bold', zorder=10)
-    ax.text(11, 42, outputs, fontsize=9.5, color=DARK, va='top', linespacing=1.6, zorder=10)
-
-    # 左 3：关键设计点  y=[6, 30]  h=24
-    title_panel(ax, 4, 6, 44, 24, '关键设计点', color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(5.5, 24.5, key_design, fontsize=9.6, color=DARK, va='top', linespacing=1.65, zorder=10)
-
-    # ============== 右列 ==============
-    # 右 1：How  y=[20, 84]  h=64  (与右2留 4 单位)
-    title_panel(ax, 50, 20, 46, 64, '执行步骤  (How)', color=color, fc='white')
-    ax.text(51.5, 78.5, how, fontsize=9.6, color=DARK, va='top', linespacing=1.7, zorder=10)
-
-    # 右 2：实测细节  y=[6, 16]  h=10  (与右1留 4 单位)
-    title_panel(ax, 50, 6, 46, 10, '实测细节 / 工程说明', color=GRAY, fc='#f7f7fb')
-    ax.text(51.5, 11.5, extra, fontsize=9.4, color=DARK, va='top', linespacing=1.6, zorder=10)
-
-
+# =========================================================
+# 18 实验结果①：训练
+# =========================================================
 def slide_18():
     fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 1', '拓扑构建 (orbit + topology)', '#3666b8', LIGHT_BLUE, '5 s',
-        purpose='构造一个 30 分钟、16 颗 IPv6 + 1 颗 AOS 的“完全可知”星座；\n'
-                '把后面所有阶段都要反复用到的可见性、距离、带宽、剩余时长\n'
-                '提前算好、缓存成张量，避免每次仿真都重复 Skyfield 推算。',
-        how='① 用 orbit/synth_constellation.py 合成 17 个 TLE：\n'
-            '   · 1 颗 AOS：极轨 $i=87^\\circ$，高度 400 km；\n'
-            '   · 16 颗 IPv6：$i=53^\\circ$、高度 550 km、等 RAAN 间距 22.5°；\n\n'
-            '② 调用 Skyfield 1.54 推算 0–3600 s 共 3601 个时隙的 ECEF 位置；\n\n'
-            '③ 对每时隙 $t$、每颗网关 $i$ 计算：\n'
-            r'   · 距离 $D_i(t)$、grazing angle $\theta_i(t)$；'
-            '\n'
-            r'   · 可见性 $V_i(t)\in\{0,1\}$ (规则：$\theta\geq10^\circ$ 且 $D\leq3500$ km)；'
-            '\n'
-            r'   · 剩余连续可见时长 $\Delta T_i(t)$ (前向扫描得到)；'
-            '\n'
-            r'   · 带宽 $B_i(t)$ (反距离平方衰减 + 上限 80 Mbps)；'
-            '\n\n'
-            '④ 全部张量化为 16 个 [3601, N] 矩阵，落盘到 .npz；\n\n'
-            '⑤ 暴露简洁 API：topo.visible[t]、topo.remaining_visibility(t)、\n'
-            '   topo.gateway_loads(t) — 后续 Lyapunov / IL / SimPy 直接调用。',
-        inputs='合成 TLE (脚本生成，无外部依赖)；\n'
-               '常量：仿真时长 3600 s、时隙 1 s、$D_{\\max}=3500$ km。',
-        outputs='缓存 .npz：visibility、remaining、bandwidth、distance；\n'
-                '内存对象 Topology，被 Stage 2-5 共享。',
-        key_design='· 一次算好、多次复用 — 把后续仿真的 wall-clock 从“分钟”降到“秒”；\n'
-                   '· 张量化便于 GPU/CPU 矢量化处理；\n'
-                   '· 用合成 TLE 而非真实星历：保证可复现 + 不依赖外部数据源。',
-        extra='RTX 4090 上 5 s 内完成；Stage 1 失败会导致后续全部阶段不可用，\n'
-              '故脚本对 visibility / remaining 做了一致性自检，含 31 个单元测试。'
-    )
-    save(fig, '18_flow_stage1.png')
+    header(ax, '实验结果①：本方案 (Ours) 的小网络训练情况')
 
-
-def slide_19():
-    fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 2', 'Lyapunov 专家轨迹生成 + IL 模仿训练', PURPLE, LIGHT_PURPLE, '30 s',
-        purpose='把“可证最优但实时计算成本高”的 Lyapunov 决策器作为专家，\n'
-                '在 8 个独立训练场景上跑出 (state, action) 轨迹，\n'
-                '再用监督学习蒸馏出一个 45 K 参数的星上可部署网络。',
-        how='① 8 个训练场景：换不同 seed 生成 8 套 Topology 共享；\n\n'
-            '② 每个场景跑 Lyapunov 决策器 10 s：\n'
-            '   · 每时隙输入 80 维 state (ΔT/L/V/onehot)；\n'
-            '   · 内部维护虚拟队列 Q(t)，按 drift-plus-penalty 闭式选 a*；\n'
-            r'   · 落盘 (state, action) 对，共 $\approx$ 4.3 万样本；'
-            '\n\n'
-            '③ 训练 GatewayPolicyNet (MLP 80→128→128→16)：\n'
-            '   · 行为克隆损失 + softmax 可见性掩码；\n'
-            '   · Adam lr = 1e-3、batch = 256、val_ratio = 0.2；\n'
-            '   · 60 epoch，单 epoch 0.33 s，总 20 s；\n\n'
-            '④ DAgger 一轮：让训练好的 IL 网络 roll-out 一次，把不一致样本\n'
-            '   交给 Lyapunov 重新标注，扩增 +500 样本后再训 10 epoch；\n\n'
-            '⑤ 保存权重 il_policy.pt 与训练曲线 fig3_il_training.png。',
-        inputs='Stage 1 的 Topology；\n'
-               '专家：optimizer/lyapunov_solver.py；\n'
-               '学生：optimizer/policy_net.py。',
-        outputs='il_policy.pt (45 K 参数，约 180 KB)；\n'
-                'fig3_il_training.png (loss / val_acc)；\n'
-                'val_acc = 99.91 %、val_loss = 0.0092。',
-        key_design='· 选 MLP 而非 RNN：状态已经包含 $\\Delta T_i$ 等历史信息，无需循环；\n'
-                   '· softmax 后乘可见性掩码：物理上不可见的网关概率 = 0；\n'
-                   '· DAgger 一轮足够：实测第一轮已收敛，再加效果不明显。',
-        extra='RTX 4090 上 30 s 内完成；显存峰值 < 1.5 GB。\n'
-              '若改为纯 CPU 训练，时间约 4 min — 仍属于可接受范围。'
-    )
-    save(fig, '19_flow_stage2.png')
-
-
-def slide_20():
-    fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 3', 'DQN 消融训练', '#c8651f', LIGHT_ORANGE, '13 min',
-        purpose='给 DQN 与 Lyapunov 完全相同的状态空间、动作空间、奖励函数，\n'
-                '验证“同样信息下，DRL 也学不到 Lyapunov 的最优策略” —\n'
-                '这是对“为什么不直接上 DRL”的最关键消融。',
-        how='① 状态空间：与 Lyapunov 完全一致 (80 维)；\n'
-            '② 动作空间：16 个候选网关 + “保持当前” 共 17；\n'
-            '③ Q 网络：MLP 80→256→256→17，约 100 K 参数；\n\n'
-            '④ 训练循环：\n'
-            '   · 15 epoch × 8 场景 × 3600 决策 ≈ 432 K 转移；\n'
-            '   · 经验回放容量 100 K，batch 256；\n'
-            '   · $\\epsilon$-greedy 从 1.0 衰减至 0.05；\n'
-            '   · target net 每 1000 步软更新 ($\\tau$ = 0.005)；\n'
-            '   · 损失：Huber loss + Adam lr = 5e-4；\n\n'
-            '⑤ 每 epoch 末跑一次评估：固定 seed roll-out 3600 决策，\n'
-            '   记录平均 reward、最差 reward、切换次数；\n\n'
-            '⑥ 保存最佳模型 dqn_best.pt + 训练曲线。',
-        inputs='Stage 1 Topology；\n'
-               'baselines/pure_drl.py 中的 DQN 实现；\n'
-               '8 个训练场景共享。',
-        outputs='dqn_best.pt；\n'
-                '训练日志 (TensorBoard) / 评估指标；\n'
-                '最佳平均 reward = -1.3824 (5 seed)。',
-        key_design='· 同状态 / 同奖励 / 同动作：保证消融公平，唯一差异是“决策方式”；\n'
-                   '· 不引入 PPO/A2C 复杂训练技巧：与 baseline DQN 保持简洁；\n'
-                   '· 占总耗时 ~88 % — 反衬出 IL 的高效率。',
-        extra='RTX 4090 上 13 min；若用 RTX 3060 约 35 min。\n'
-              '消融结果：DQN reward 是 IL 专家的 4.7× 差 — 强证明决策框架本身就比 DRL 更适合本场景。'
-    )
-    save(fig, '20_flow_stage3.png')
-
-
-def slide_21():
-    fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 4', '6 方案 × 5 种子 = 30 次 SimPy 仿真', '#2e7d4f', LIGHT_GREEN, '1.5 min',
-        purpose='把上游产出的 5 个决策器 (含 Reactive、Max-Vis、MPTCP、DQN、Ours-Lyap、Ours-IL)\n'
-                '同时在 SimPy 事件驱动环境中 roll-out，记录端到端 9 项指标，\n'
-                '用 5 个独立种子统计 mean ± std 以排除偶然。',
-        how='① 仿真器：SimPy 4.1，离散事件、单线程、确定性；\n\n'
-            '② 单次仿真规模：\n'
-            '   · 时长 1800 s，AOS 帧速率 300 pps，16 候选网关；\n'
-            '   · 单次约 100 万事件 (报文到达、切换、Gossip、上下文迁移)；\n\n'
-            '③ 每时隙循环：\n'
-            '   · 决策器输出 a(t) → 若 a 变化触发两阶段迁移；\n'
-            '   · AOS 发包 → 当前网关接收 → 翻译 → 转 IPv6 出口；\n'
-            '   · 记录 PLR、E2E 时延、迁移分片数、降级层级；\n\n'
-            '④ 6 方案 × 5 seed = 30 次仿真，独立日志，互不污染；\n\n'
-            '⑤ v2 引入的 $O(1)$ 完成检测使单次仿真由 600 s → 3 s (200×)；\n\n'
-            '⑥ 全部 30 次串行执行约 90 s，结果存 results/sim_<scheme>_<seed>.pkl。',
-        inputs='Stage 1 Topology + Stage 2/3 训练好的策略；\n'
-               'network/simpy_env.py 仿真器；\n'
-               'migration/* 状态迁移模块。',
-        outputs='30 个 .pkl (每方案/种子)；\n'
-                '聚合 summary.json；\n'
-                '主表数据：Ours 全部 PLR = 0%。',
-        key_design='· 单线程串行：彻底可复现，调试方便；\n'
-                   '· $O(1)$ 完成检测：把热点路径 (FragmentReassemblyBuffer.complete) 提速 200×；\n'
-                   '· 5 种子统计而非单次：暴露 DQN 高方差等 baseline 弱点。',
-        extra='RTX 4090 利用率 ~0 % (本阶段是 CPU 仿真，GPU 仅做 IL 推理)；\n'
-              '内存峰值 ~600 MB，可在 8 GB RAM 笔记本完整复现。'
-    )
-    save(fig, '21_flow_stage4.png')
-
-
-def slide_22():
-    fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 5', '推理延迟基准 (CPU / GPU benchmark)', GOLD, LIGHT_GOLD, '10 s',
-        purpose='证明 IL 策略网络在最坏情况下，单次推理延迟仍远小于\n'
-                '物理切换窗口 $T_{\\mathrm{phys}}=500$ ms 和决策周期 1 s；\n'
-                '为“星上可部署”给出量化证据。',
-        how='① 在与训练完全相同的硬件 (RTX 4090) 上加载 il_policy.pt；\n\n'
-            '② 预热：连续推理 200 次，丢弃这些结果 —\n'
-            '   避免 CUDA 内核延迟初始化、Python JIT、CPU L1 cache 污染影响测量；\n\n'
-            '③ 正式测量：\n'
-            '   · GPU 模式：torch.cuda.synchronize() 包裹，连续 2000 次推理；\n'
-            '   · CPU 模式：NumPy 纯前向 (无 torch 依赖)，便于上星部署对照；\n\n'
-            '④ 统计指标：\n'
-            '   · P50 / P95 / P99 / 最大延迟；\n'
-            '   · 显存峰值 / RAM 峰值；\n\n'
-            '⑤ 写入 fig9_inference_latency.png 并表化到 EXPERIMENT_REPORT.md。',
-        inputs='Stage 2 训练好的 il_policy.pt；\n'
-               '随机生成的 2000 条 80 维 state 输入。',
-        outputs='GPU 0.176 ms / CPU 0.144 ms (P50)；\n'
-                'P99 < 0.30 ms；最大 < 0.50 ms；\n'
-                'fig9_inference_latency.png。',
-        key_design='· 预热与正式测量严格分离：消除 cold-start bias；\n'
-                   '· 同时跑 GPU + CPU：CPU 数字才是星上代理；\n'
-                   '· 2000 次重复：让 P99 估计有足够统计功效。',
-        extra='RTX 4090 推理峰值显存 < 50 MB；CPU 单核占用 ~25 %。\n'
-              '换到星载等级的 Cortex-A72 CPU 估计推理仍 < 2 ms — 仍远低于 1 s 决策周期。'
-    )
-    save(fig, '22_flow_stage5.png')
-
-
-def slide_23():
-    fig, ax = new_slide()
-    _stage_detail_layout(ax,
-        'Stage 6', '指标聚合、出图与报告生成', '#a52828', LIGHT_RED, '< 10 s',
-        purpose='把前 5 个阶段散落的 .pt / .npz / .pkl / TensorBoard 日志\n'
-                '统一聚合成可复现的“一键报告”：JSON / Markdown / 9 张 PNG，\n'
-                '便于下游写论文 / 写汇报 / 复审。',
-        how='① 收集所有 .pkl 与 summary.json，按 (方案, seed) 聚合；\n\n'
-            '② 用 NumPy 计算 mean ± std (5 seed)，按 9 项指标：\n'
-            '   PLR、E2E、切换次数、总中断时长、迁移分片数、\n'
-            '   平均/最差 reward、决策延迟 (CPU/GPU)、Gossip 收敛轮数；\n\n'
-            '③ 写出 results/EXPERIMENT_REPORT.md (含表格 + 关键结论)；\n\n'
-            '④ 调用 experiments/plot_figures.py 出 9 张图：\n'
-            '   · fig1 可见性时间序列\n'
-            '   · fig2 Lyapunov V 扫描\n'
-            '   · fig3 IL 训练曲线\n'
-            '   · fig4 PLR over time\n'
-            '   · fig5 E2E latency CDF\n'
-            '   · fig6 Migration overhead\n'
-            '   · fig7 Load balance\n'
-            '   · fig8 6 方案 mean±std 汇总\n'
-            '   · fig9 推理延迟分布；\n\n'
-            '⑤ 固定 matplotlib 版本 + dpi = 140，保证图像逐像素可复现。',
-        inputs='Stage 2-5 的所有产物 .pkl/.pt/.json；\n'
-               'plot_figures.py 与 matplotlib 3.10。',
-        outputs='EXPERIMENT_REPORT.md (主报告)；\n'
-                'summary.json (机器可读)；\n'
-                '9 张 PNG (fig1-fig9)，存 results/figures/。',
-        key_design='· 一键 (make full GPU=0) 复现：拉源码 → 跑 15 min → 得到 9 张图；\n'
-                   '· 报告与图分离：报告改文字时不需要重出图；\n'
-                   '· 所有 seed 都落盘 — 审稿人可独立复核统计显著性。',
-        extra='< 10 s 即可完成；不依赖 GPU。\n'
-              '生成的报告是写大论文 / 投稿 / 阶段汇报的“唯一事实源”。'
-    )
-    save(fig, '23_flow_stage6.png')
-
-# =========================================================
-# 17 实验结果①：训练
-# =========================================================
-def slide_24():
-    fig, ax = new_slide()
-    header(ax, '实验结果①：训练阶段产出与 DQN 消融')
-
-    add_image(ax, os.path.join(FIG_DIR, 'fig3_il_training.png'), 4, 32, 42, 46)
+    add_image(ax, os.path.join(FIG_DIR, 'fig3_il_training.png'), 4, 32, 44, 46)
     ax.text(4, 28,
-            'Fig.3  IL 训练曲线  (RTX 4090)\n'
-            '蓝/绿：train / val loss；橙：val_acc。\n'
-            '5 epoch 内 loss 由 0.8 跌至 < 0.02，第 60 epoch 收敛于 0.0092。',
+            '图：小网络训练曲线  (RTX 4090，60 epoch)\n'
+            '蓝/绿：训练 / 验证损失；橙：决策与"老师"一致比例。\n'
+            '5 epoch 内损失由 0.8 跌至 < 0.02；60 epoch 收敛于 0.0092。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
 
-    # 右上：IL 网络小结
-    title_panel(ax, 52, 56, 43, 22, 'IL 网络  (监督 Lyapunov 专家)',
+    # 右上：训练结果指标
+    title_panel(ax, 52, 56, 43, 28, '训练结果：精度近乎完美',
                 color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(54, 73,
-            '· 60 epoch 时 val_acc = 99.91 %、val_loss = 0.0092；\n'
-            '· BC loss 在第 1 epoch 已降至 0.02；\n'
-            '· val_acc 在第 5 epoch 即达 99.7 %；\n'
-            '· 与 Lyapunov 在测试集上是完全一致的决策序列。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
+    ax.text(54, 75,
+            '· 与"老师"决策一致比例：',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(54, 71.5,
+            '   60 epoch 时达 99.91 %；第 5 epoch 已达 99.7 %；',
+            fontsize=10.2, color='#2e7d4f', weight='bold', va='center', zorder=10)
+    ax.text(54, 67,
+            '· 验证损失：60 epoch 收敛于 0.0092；',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(54, 63.5,
+            '· 训练时长：仅 30 秒（RTX 4090）；',
+            fontsize=10.5, color=DARK, va='center', zorder=10)
+    ax.text(54, 60,
+            '· 在所有测试场次上，本方案与"老师"的决策序列完全一致。',
+            fontsize=10.5, color=DARK, va='top', linespacing=1.55, zorder=10)
 
-    # 右下：DQN 对比
-    title_panel(ax, 52, 22, 43, 30, 'DQN 消融对比  (同状态空间)',
-                color='#a52828', fc=LIGHT_RED)
-    rows = [
-        ('指标',             'DQN',            'IL 专家 (Lyapunov)'),
-        ('最差平均 reward',  '−1.3824',        '−0.2953'),
-        ('训练时长',          '13 min',         '30 s'),
-        ('方差',              '高 (不同种子差异显著)',  '低 (确定性)'),
-    ]
-    cols = [53, 67, 80]; y0 = 46
-    for r, row in enumerate(rows):
-        y = y0 - r*4.5
-        if r == 0:
-            ax.add_patch(Rectangle((52, y - 1.2), 43, 3.6, fc='#a52828'))
-            for c, v in enumerate(row):
-                ax.text(cols[c] + 0.3, y + 0.7, v, fontsize=10, color='white', weight='bold', va='center')
-        else:
-            if r % 2 == 0:
-                ax.add_patch(Rectangle((52, y - 1.6), 43, 4, fc=LIGHT_RED))
-            for c, v in enumerate(row):
-                color = '#a52828' if c == 0 else DARK
-                ax.text(cols[c] + 0.3, y + 0.7, v, fontsize=10, color=color, va='center')
-
-    ax.text(52, 22.5,
-            '结论：DQN reward 是 Lyapunov 的 4.7× 差；\n'
-            '佐证“星历可预测场景中，确定性优化 > 强化学习”。',
-            fontsize=10.5, color='#a52828', va='top', linespacing=1.55, style='italic')
+    # 右下：工程意义
+    title_panel(ax, 52, 22, 43, 30, '训练高效的工程意义',
+                color='#2e7d4f', fc=LIGHT_GREEN)
+    ax.text(54, 45,
+            '· **训练快**：30 秒 → 任何参数调整都可快速迭代；',
+            fontsize=10.2, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(54, 41,
+            '· **样本省**：仅需 4.3 万条专家轨迹即可饱和；',
+            fontsize=10.2, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(54, 37,
+            '· **精度高**：几乎"无损"复制了"老师"的决策能力；',
+            fontsize=10.2, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(54, 33,
+            '· **可上星**：45 K 参数、180 KB 权重、推理 < 0.2 ms。',
+            fontsize=10.2, color=DARK, va='top', linespacing=1.65, zorder=10)
+    ax.text(54, 26.5,
+            '一句话：本方案部署版的实际效果 = "老师"的理论最优效果。',
+            fontsize=10, color='#2e7d4f', weight='bold', va='center',
+            linespacing=1.55, zorder=10)
 
     ax.text(4, 16,
-            '图分析：纵轴 (Behavior cloning loss 与 Action match accuracy) 双 y 轴；val acc 在 epoch 5 后基本不动，\n'
-            '说明 IL 网络的“信息瓶颈”不是模型容量，而是专家轨迹本身的最优 action 在状态空间上是几乎可分的；\n'
-            '这也解释了 DQN 学不好的原因：reward 信号弱，但监督信号一旦给到，就能瞬间学会。',
-            fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '24_train_results.png')
+            '图怎么看：左 y 轴是训练损失（越低越好），右 y 轴是与"老师"决策一致的比例（越高越好）。\n'
+            '5 epoch 后曲线基本不动，说明小网络已经把"老师"的本事完整学到，再加层加宽也不会更好。\n'
+            '这正是后面主表中 Ours 能拿到接近"理论最优"指标的根本原因。',
+            fontsize=10, color=GRAY, va='top', linespacing=1.6, style='italic')
+    save(fig, '18_train_results.png')
 
 # =========================================================
 # 18 主表
 # =========================================================
-def slide_25():
+def slide_19():
     fig, ax = new_slide()
-    header(ax, '实验结果②：测试综合指标  (5 seed mean ± std)')
+    header(ax, '实验结果②：综合性能指标  (5 个独立场次 mean ± std)')
 
     headers = ['方案', 'PLR (%)', 'E2E (ms)', '切换次数', '总中断 (s)', '切换中丢分片']
     rows = [
-        ('Reactive',      '0.233 ± 0.000',  '6.07 ± 0.00',  '3.0 ± 0.0',  '1.50 ± 0.00', '175 240'),
-        ('Max-Visibility','0.275 ± 0.000',  '7.82 ± 0.00',  '3.0 ± 0.0',  '1.50 ± 0.00', '145 279'),
-        ('MPTCP-style',   '6.382 ± 1.454',  '8.60 ± 0.35',  '69.6 ± 17.8','34.80 ± 8.89','146 853 ± 3 040'),
-        ('Pure-DRL',      '0.217 ± 0.153',  '7.05 ± 1.14',  '2.4 ± 1.36', '1.20 ± 0.68', '143 973 ± 43 124'),
-        ('Ours-Lyap',     '0.000 ± 0.000',  '6.24 ± 0.00',  '1.0 ± 0.0',  '0.00 ± 0.00', '0'),
-        ('Ours-IL',       '0.000 ± 0.000',  '6.24 ± 0.00',  '1.0 ± 0.0',  '0.00 ± 0.00', '0'),
+        ('Reactive',       '0.233 ± 0.000',  '6.07 ± 0.00',  '3.0 ± 0.0',
+         '1.50 ± 0.00',  '175 240'),
+        ('Max-Visibility', '0.275 ± 0.000',  '7.82 ± 0.00',  '3.0 ± 0.0',
+         '1.50 ± 0.00',  '145 279'),
+        ('MPTCP-style',    '6.382 ± 1.454',  '8.60 ± 0.35',  '69.6 ± 17.8',
+         '34.80 ± 8.89', '146 853 ± 3 040'),
+        ('Ours',           '0.000 ± 0.000',  '6.24 ± 0.00',  '1.0 ± 0.0',
+         '0.00 ± 0.00',  '0'),
     ]
     col_xs = [5, 22, 38, 54, 68, 82]
     y0 = 78
     ax.add_patch(Rectangle((5, y0 - 1.2), 90, 4, fc=PURPLE))
     for c, h in enumerate(headers):
-        ax.text(col_xs[c] + 0.3, y0 + 0.8, h, fontsize=11, color='white', weight='bold', va='center')
+        ax.text(col_xs[c] + 0.3, y0 + 0.8, h, fontsize=11, color='white',
+                weight='bold', va='center')
     for r, row in enumerate(rows):
-        y = y0 - 4 - r*4.5
-        ours = (r >= 4)
-        if ours:
-            ax.add_patch(Rectangle((5, y - 1.6), 90, 4, fc=LIGHT_GREEN, ec='#2e7d4f', lw=1.0))
+        y = y0 - 4.5 - r * 5.0
+        is_ours = (r == len(rows) - 1)
+        if is_ours:
+            ax.add_patch(Rectangle((5, y - 1.8), 90, 4.4,
+                                   fc=LIGHT_GREEN, ec='#2e7d4f', lw=1.2))
         elif r % 2 == 0:
-            ax.add_patch(Rectangle((5, y - 1.6), 90, 4, fc=LIGHT_PURPLE))
+            ax.add_patch(Rectangle((5, y - 1.8), 90, 4.4, fc=LIGHT_PURPLE))
         for c, v in enumerate(row):
-            color = '#2e7d4f' if ours else (PURPLE if c == 0 else DARK)
+            color = '#2e7d4f' if is_ours else (PURPLE if c == 0 else DARK)
             ax.text(col_xs[c] + 0.3, y + 0.7, v, fontsize=10.5, color=color,
-                    weight=('bold' if ours else 'normal'), va='center')
+                    weight=('bold' if is_ours else 'normal'), va='center')
 
-    ax.text(5, 40, '核心结论', fontsize=13, color=PURPLE, weight='bold')
+    ax.text(5, 48, '核心结论', fontsize=13, color=PURPLE, weight='bold')
     bullets = [
-        '本方案是 5 个测试种子上唯一同时取得 PLR = 0 % 且 0 中断的方案；',
-        'MPTCP-style 是确定性卫星场景的反模式：60 s 迟滞触发 70 次切换 → 6.4 % 丢包；',
-        'Pure-DRL 收敛到次优 + 高方差：reward 比 IL 专家差 4.7×；切换数 1–5 波动；',
-        'Reactive / Max-Visibility 即使可见性策略最优，无状态迁移每次硬切丢 15 万分片；',
-        'Ours-Lyap ≡ Ours-IL：模仿学习达到与专家完全相同的部署效果，零代价上星；',
-        'E2E 时延 6.24 ms (与基线相当)，说明零中断 / 零丢包不是以时延为代价换取的。',
+        '本方案是所有方案中**唯一同时取得 PLR = 0 % 且 0 中断**的方案；',
+        'Reactive / Max-Visibility 即使可见性策略最优，由于没有状态迁移，每次硬切仍丢约 15 万个分片；',
+        'MPTCP-style 是确定性卫星场景的**反模式**：60 s 迟滞误判触发 70 次切换 → 丢包率 6.4 %；',
+        '本方案 E2E 时延 6.24 ms，与最快基线 (Reactive 6.07 ms) 几乎相当，',
+        '   说明"零中断 / 零丢包"不是以延迟为代价换取的；',
+        '切换次数仅 1 次（5 个场次都一样），证明 IL 决策器在等效几何下输出确定的最优序列。',
     ]
     for i, t in enumerate(bullets):
-        ax.text(5.5, 35 - i*4.5, '•', fontsize=12, color=GOLD)
-        ax.text(7.5, 35 - i*4.5, t, fontsize=11, color=DARK, va='center')
-    save(fig, '25_main_table.png')
+        ax.text(5.5, 43 - i*4.5, '•', fontsize=12, color=GOLD)
+        ax.text(7.5, 43 - i*4.5, t, fontsize=11, color=DARK, va='center')
+    save(fig, '19_main_table.png')
 
 # =========================================================
 # 19 关键可视化
 # =========================================================
-def slide_26():
+def slide_20():
     fig, ax = new_slide()
     header(ax, '实验结果③：关键可视化  (4 张图逐图解读)')
 
@@ -1026,18 +845,18 @@ def slide_26():
     # 单元格宽 44、高 36；左 x=4..48，右 x=50..94
     cells = [
         # (cell_x, cell_y, img_file, title, analysis)
-        (4, 46, 'fig4_loss_rate.png', 'Fig.4  Packet loss rate over time',
-         '基线 (Reactive / Max-Vis) 在 1100–1800 s 出现孤立尖峰；\n'
-         'MPTCP-style 全程高 PLR；本方案曲线始终贴底为 0。'),
-        (50, 46, 'fig7_load_balance.png', 'Fig.7  Load balance across 16 gateways',
-         '横轴 16 颗 IPv6 网关；纵轴方案承载分片数。\n'
-         '本方案 CV = 0.64，远优于 MPTCP-style 的 1.63。'),
-        (4, 8, 'fig5_latency_cdf.png', 'Fig.5  End-to-end latency CDF (log x)',
-         '4 ms 处 P50 ≈ 0.5；MPTCP / DRL 长尾明显 (P99 > 10 ms)；\n'
-         '本方案与 Reactive / Max-Vis 重合于左侧最快段。'),
-        (50, 8, 'fig8_summary.png', 'Fig.8  6 方案 × 5 seed mean±std 柱状图',
-         '一图概括 PLR / E2E / 切换数 / 中断时长 4 个核心指标；\n'
-         '本方案在其中 3 项几乎为 0；MPTCP-style 中断误差棒最长。'),
+        (4, 46, 'fig4_loss_rate.png', '图 4  丢包率随时间变化',
+         'Reactive / Max-Visibility 在 1100–1800 s 因硬切丢包出现孤立尖峰；\n'
+         'MPTCP-style 因频繁切换全程高位；**本方案曲线始终贴底 = 0**。'),
+        (50, 46, 'fig7_load_balance.png', '图 7  16 颗候选网关的负载均衡',
+         '横轴 16 颗 IPv6 网关；纵轴各方案承载分片数。\n'
+         '本方案变异系数 CV = 0.64，远优于 MPTCP-style 的 1.63（均衡性更好）。'),
+        (4, 8, 'fig5_latency_cdf.png', '图 5  端到端时延累积分布 (CDF, 对数 x 轴)',
+         'MPTCP-style 因频繁切换出现明显长尾 (P99 > 10 ms)；\n'
+         '**本方案与 Reactive / Max-Vis 重合于左侧最快段**，零中断不以延迟为代价。'),
+        (50, 8, 'fig8_summary.png', '图 8  4 方案 × 5 场次 mean ± std 汇总柱状图',
+         '一图概括 PLR / E2E / 切换数 / 中断时长 4 个核心指标。\n'
+         '本方案在 PLR / 切换 / 中断 3 项几乎为 0；MPTCP-style 中断误差棒最长。'),
     ]
     CW, CH = 44, 36
     for cx, cy, img, title, an in cells:
@@ -1052,12 +871,12 @@ def slide_26():
         # 文字解读（底部 7 单位高）
         ax.text(cx + 1.5, cy + 6.5, an, fontsize=9.5, color=DARK,
                 va='top', linespacing=1.55, zorder=10)
-    save(fig, '26_visualizations.png')
+    save(fig, '20_visualizations.png')
 
 # =========================================================
 # 20 结论
 # =========================================================
-def slide_27():
+def slide_21():
     fig, ax = new_slide()
     header(ax, '结论')
 
@@ -1154,7 +973,7 @@ def slide_27():
         ax.text(53.5, y, '·', fontsize=11, color='#3666b8', va='center', zorder=10)
         ax.text(55.5, y, t, fontsize=9.2, color=DARK, va='center', zorder=10)
 
-    save(fig, '27_conclusion.png')
+    save(fig, '21_conclusion.png')
 
 
 def main():
@@ -1163,8 +982,7 @@ def main():
                slide_03, slide_04, slide_05, slide_06, slide_07, slide_08,
                slide_09, slide_10, slide_11, slide_12, slide_13, slide_14,
                slide_15, slide_16, slide_17,
-               slide_18, slide_19, slide_20, slide_21, slide_22, slide_23,
-               slide_24, slide_25, slide_26, slide_27]:
+               slide_18, slide_19, slide_20, slide_21]:
         fn()
 
 if __name__ == '__main__':
