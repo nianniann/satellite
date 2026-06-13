@@ -115,6 +115,17 @@ def add_image(ax, path, x, y, w, h):
     iax.imshow(img)
     iax.axis('off')
 
+
+IMG_DIR = os.path.join(os.path.dirname(__file__), 'slide_imgs')
+
+def image_slide(out_name, src_image):
+    """整页贴图：直接把 src_image 拷贝到 OUT/out_name，保留原图质量。"""
+    import shutil
+    src_path = os.path.join(IMG_DIR, src_image)
+    dst_path = os.path.join(OUT, out_name)
+    shutil.copy(src_path, dst_path)
+    print(f'  ✓ {out_name}  (image)')
+
 # =========================================================
 # 01 封面
 # =========================================================
@@ -167,52 +178,8 @@ def slide_02():
 # 03 背景
 # =========================================================
 def slide_03():
-    fig, ax = new_slide()
-    header(ax, '研究背景：空天地一体化与卫星网络代际异构')
+    image_slide('03_background.png', '03_background.png')
 
-    # 左：示意图（同心圆）
-    from matplotlib.patches import Circle
-    cx, cy = 22, 45
-    ax.add_patch(Circle((cx, cy), 18, fc='none', ec='#a52828', lw=1.4))
-    ax.add_patch(Circle((cx, cy), 9,  fc='none', ec=GRAY, lw=1.0))
-    ax.text(cx, cy, '地球', ha='center', va='center', fontsize=11, color=GRAY)
-    # AOS satellite (red dot top)
-    ax.plot(cx, cy + 18, 'o', ms=12, color='#a52828')
-    ax.text(cx, cy + 21.5, 'AOS 卫星 (CCSDS)', ha='center', fontsize=9.5, color='#a52828', weight='bold')
-    # IPv6 satellites around inner circle
-    import math
-    for k in range(7):
-        a = math.pi/2 + (k+1) * 2*math.pi/8
-        px = cx + 9 * math.cos(a); py = cy + 9 * math.sin(a)
-        ax.plot(px, py, 'o', ms=10, color='#3666b8')
-    ax.text(cx - 14, cy - 13, '存量 AOS 业务\n(窄带、长帧)', fontsize=9, color='#a52828', ha='center')
-    ax.text(cx + 14, cy + 14, '新一代 IPv6 卫星\n(宽带 IP 互联)', fontsize=9, color='#3666b8', ha='center')
-    ax.text(cx, cy - 22, 'IPv6 网关卫星  ←  协议转换中介', ha='center', fontsize=10, color=PURPLE, weight='bold')
-
-    # 右：三段文字
-    x0 = 50
-    ax.text(x0, 80, '网络架构演进', fontsize=14, color=PURPLE, weight='bold')
-    ax.text(x0, 74,
-            '6G 时代空天地一体化已成共识。LEO 星座 (Starlink / OneWeb / 千帆) 部署节奏快、规模大，\n'
-            '卫星互联网正从“单星窄带通信”走向“以星座为单元的宽带 IP 互联”。\n'
-            '运营网正同时存在两代体系：早期 CCSDS/AOS 系统不会全量退网，新一代 IPv6 系统已开始上轨。',
-            fontsize=11, color=DARK, va='top', linespacing=1.5)
-
-    ax.text(x0, 56, '代际异构的本质矛盾', fontsize=14, color=PURPLE, weight='bold')
-    ax.text(x0, 51,
-            '· 新一代 IPv6 卫星  ：原生支持 IPv6 路由 / QoS / 移动性，使用 UDP/IPv6 封装；\n'
-            '· 存量 AOS 卫星    ：CCSDS AOS 协议 (1995)，256 字节定长帧、SCID/VCID 复用；\n'
-            '· 业务必须互通     ：长时间内两代体系并存，全量替换不现实，必须有“协议转换网关”。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-
-    ax.text(x0, 30, '破局：让新一代 IPv6 卫星扮演"协议转换网关"',
-            fontsize=14, color=PURPLE, weight='bold')
-    ax.text(x0, 25,
-            '· 不替换、不并联，由新一代 IPv6 卫星在轨担任 AOS <-> IPv6 双向翻译中介；\n'
-            '· 既保留 AOS 存量业务的兼容性，又让 IPv6 互联网能反向接入卫星节点；\n'
-            '· 网关角色具备“可演进性”：随 IPv6 卫星部署密度增加而平滑扩展，无需地面改造。',
-            fontsize=11, color=DARK, va='top', linespacing=1.55)
-    save(fig, '03_background.png')
 
 # =========================================================
 # 04 前期工作：从"能通信"到"能转换"的静态互联闭环
@@ -221,742 +188,84 @@ PRIOR_ADDR_IMG  = os.path.join(os.path.dirname(__file__), 'prior_addr_config.png
 PRIOR_PROTO_IMG = os.path.join(os.path.dirname(__file__), 'prior_proto_convert.png')
 
 def slide_04():
-    fig, ax = new_slide()
-    header(ax, '前期工作：从“能通信”到“能转换”的静态互联闭环')
-
-    # 左：地址自动配置
-    panel(ax, 3.5, 18, 46, 65, fc='white', ec=PURPLE, lw=1.0)
-    ax.text(26.5, 80, '工作①  网络层地址自动配置',
-            ha='center', fontsize=13, color=PURPLE, weight='bold', zorder=10)
-    add_image(ax, PRIOR_ADDR_IMG, 5, 30, 43, 48)
-    ax.text(26.5, 25,
-            '解决“能通信”问题：突破无 MAC 环境下地址生成受限，\n'
-            '实现 AOS 节点的 IPv6 合法身份自动配置。',
-            ha='center', fontsize=10.5, color=DARK, va='top', linespacing=1.65, zorder=10)
-
-    # 右：协议报文转换
-    panel(ax, 50.5, 18, 46, 65, fc='white', ec='#3666b8', lw=1.0)
-    ax.text(73.5, 80, '工作②  AOS <-> IPv6 协议报文双向转换',
-            ha='center', fontsize=13, color='#3666b8', weight='bold', zorder=10)
-    add_image(ax, PRIOR_PROTO_IMG, 52, 30, 43, 48)
-    ax.text(73.5, 25,
-            '解决“能转换”问题：基于 SCID 映射，实现 AOS 帧与\n'
-            'IPv6 数据包的双向静态翻译与组装。',
-            ha='center', fontsize=10.5, color=DARK, va='top', linespacing=1.65, zorder=10)
-
-    # 底部总结框
-    title_panel(ax, 3.5, 4, 93, 12, '遗留挑战', color='#a52828', fc=LIGHT_RED)
-    ax.text(5, 11,
-            '上述两项工作假设 AOS 卫星与某一颗 IPv6 网关之间链路绝对稳定（静态场景）。\n'
-            '然而真实 LEO 星座处于高速运动中——单网关可见窗口仅 5–15 min，'
-            '窗口结束必须切换，业务连续性无从保证。这正是本课题阶段要解决的问题。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.7, zorder=10)
-    save(fig, '04_prior_work.png')
+    image_slide('04_prior_work.png', '04_prior_work.png')
 
 
 # =========================================================
 # 05 现状
 # =========================================================
 def slide_05():
-    fig, ax = new_slide()
-    header(ax, '现状：协议转换网关——异构互联的关键中介')
+    image_slide('05_status.png', '05_status.png')
 
-    # 左：数据流框
-    ax.text(5, 80, '协议转换数据流', fontsize=14, color=PURPLE, weight='bold')
-    for i, (x, label, color) in enumerate([
-        (5, 'AOS 卫星\n(CCSDS)', '#a52828'),
-        (20, 'IPv6 网关卫星\n(协议转换)', '#3666b8'),
-        (37, 'IPv6 卫星\n互联网', '#2e7d4f'),
-    ]):
-        panel(ax, x, 65, 12, 10, fc='white', ec=color, lw=1.6)
-        ax.text(x + 6, 70, label, ha='center', va='center', fontsize=10, color=color, weight='bold')
-    ax.annotate('', xy=(20, 70), xytext=(17, 70),
-                arrowprops=dict(arrowstyle='->', color=DARK, lw=1.4))
-    ax.annotate('', xy=(37, 70), xytext=(32, 70),
-                arrowprops=dict(arrowstyle='->', color=DARK, lw=1.4))
-    ax.text(5, 60,
-            '上行：(SCID, VCID)  →  IPv6 地址映射 + UDP/IPv6 封装\n'
-            '下行：IPv6 报文  →  解析  →  AOS 帧重组下行',
-            fontsize=10, color=GRAY, va='top', linespacing=1.5)
-
-    # 前序工作已解决
-    title_panel(ax, 5, 32, 45, 18, '前序工作已解决：静态场景下的协议转换',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(6.5, 44,
-            '· 假设 AOS 卫星与某一颗 IPv6 网关链路稳定可见；\n'
-            '· 完成报文格式翻译规则、地址映射表、QoS / DSCP 映射；\n'
-            '· 完成 UDP/IPv6 封装与解封装、CCSDS 帧重组逻辑；\n'
-            '· 提供功能正确性与单包时延仿真。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55)
-
-    # 右：动态难题
-    ax.text(55, 80, '动态场景下的本质难题', fontsize=14, color=PURPLE, weight='bold')
-    ax.text(55, 75,
-            'LEO 卫星速度约 7.6 km/s，AOS 与某一颗 IPv6 网关的单网关可见窗口仅 5–15 min；\n'
-            '窗口结束意味着必须切换到下一颗 IPv6 网关，否则业务中断。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-
-    ax.text(55, 62, '“切换”引发的连锁问题', fontsize=13, color=PURPLE, weight='bold')
-    items = [
-        '翻译上下文 (TC) 在原网关，目标网关“失忆”，已建会话被强制重协商；',
-        '传统 Break-before-Make 硬切换中断 0.3–1 s，期间报文全部丢失；',
-        'CCSDS 跨帧分片正在重组，未完成的分片在切换瞬间直接丢弃；',
-        '多颗 IPv6 网关并发覆盖同一 AOS 卫星  →  状态分裂，难以确定权威副本。',
-    ]
-    for i, t in enumerate(items):
-        ax.text(55.5, 56 - i*4, '•', fontsize=12, color=GOLD, va='top')
-        ax.text(57.5, 56 - i*4, t, fontsize=10.5, color=DARK, va='top')
-
-    title_panel(ax, 55, 14, 41, 20, '本阶段研究重点',
-                color='#a52828', fc=LIGHT_RED)
-    ax.text(56.5, 28,
-            '把“静态可转换”升级为“持续可转换”：\n'
-            '在 LEO 高动态、可见窗口受限、多副本并存条件下，\n'
-            '提供端到端服务连续性 (零中断、零丢包、状态可证)。',
-            fontsize=10, color=DARK, va='top', linespacing=1.7, zorder=10)
-    save(fig, '05_status.png')
 
 # =========================================================
 # 05 困境①
 # =========================================================
 def slide_06():
-    fig, ax = new_slide()
-    header(ax, '困境①：翻译上下文 (TC) 丢失与硬切换丢包')
+    image_slide('06_problem_tc.png', '06_problem_tc.png')
 
-    # 公式
-    ax.text(5, 80, r'翻译上下文：$\mathcal{C}=\mathcal{C}_{\mathrm{static}}\;\cup\;\mathcal{C}_{\mathrm{dynamic}}$',
-            fontsize=15, color=PURPLE, va='center')
-
-    # 静态
-    title_panel(ax, 5, 60, 42, 16, r'$\mathcal{C}_{\mathrm{static}}$  ( ≈ 288 B / 会话，稳定，可预先复制 )',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(6.5, 70,
-            '· (SCID, VCID)  →  IPv6 地址映射表 (LRU 缓存)\n'
-            '· QoS / DSCP 标签、带宽配额、优先级队列归属\n'
-            '· 在会话建立时即可确定，整个会话生命期不会变化。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-
-    # 动态
-    title_panel(ax, 5, 32, 42, 24, r'$\mathcal{C}_{\mathrm{dynamic}}$  ( 持续增长、切换时易丢 )',
-                color='#a52828', fc=LIGHT_RED)
-    ax.text(6.5, 50,
-            r'· $\mathcal{C}_{\mathrm{frag}}$ : CCSDS 包跨分片重组缓存 (3–8 片/包)',
-            fontsize=10.5, color=DARK)
-    ax.text(6.5, 46,
-            r'· $\mathcal{C}_{\mathrm{qos}}$  : VCID 级 QoS 队列状态、令牌桶剩余',
-            fontsize=10.5, color=DARK)
-    ax.text(6.5, 42,
-            r'· $\mathcal{C}_{\mathrm{seq}}$  : IPv6 流有序性序列号、重排窗口',
-            fontsize=10.5, color=DARK)
-    ax.text(6.5, 37,
-            '硬切换瞬间，$\\mathcal{C}_{\\mathrm{dynamic}}$ 在原网关被销毁，\n'
-            '新网关无任何上下文  →  报文丢失、流被强制重建。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-
-    # 右：时间线 + 实测表
-    ax.text(52, 82, '传统 Break-before-Make 的损失时序', fontsize=13, color=PURPLE, weight='bold')
-    # timeline rectangles
-    ax.add_patch(Rectangle((52, 74), 14, 4, fc=LIGHT_BLUE, ec='#3666b8'))
-    ax.text(59, 76, '网关 A 服务', ha='center', va='center', fontsize=10, color='#3666b8')
-    ax.add_patch(Rectangle((66, 74), 6, 4, fc='#a52828', ec='#a52828'))
-    ax.text(69, 76, '中断 0.3–1 s', ha='center', va='center', fontsize=9.5, color='white', weight='bold')
-    ax.add_patch(Rectangle((72, 74), 20, 4, fc=LIGHT_BLUE, ec='#3666b8'))
-    ax.text(82, 76, '网关 B 接管 (上下文重建)', ha='center', va='center', fontsize=10, color='#3666b8')
-    ax.text(69, 72, '↑  期间所有报文全丢', ha='center', fontsize=9.5, color='#a52828')
-
-    ax.text(52, 65, '实测损失 (30 min 仿真，5 种子)', fontsize=13, color=PURPLE, weight='bold')
-    rows = [
-        ('方案',         'PLR',     '单次丢分片', '中断'),
-        ('Reactive',     '0.23 %',  '175 240',    '1.5 s'),
-        ('Max-Visibility','0.28 %', '145 279',    '1.5 s'),
-        ('MPTCP-style',  '6.38 %',  '146 853',    '34.8 s'),
-        ('本方案 (Ours)','0.00 %',  '0',          '0 s'),
-    ]
-    cw = [10, 9, 12, 8]; xs = [52, 62, 71, 83]; y0 = 60
-    for r, row in enumerate(rows):
-        for c, val in enumerate(row):
-            color = PURPLE if r == 0 else (
-                '#2e7d4f' if r == 4 else DARK)
-            weight = 'bold' if r == 0 or r == 4 else 'normal'
-            ax.text(xs[c], y0 - r*3.5, val, fontsize=10, color=color, weight=weight, va='center')
-        if r == 0:
-            ax.plot([52, 92], [y0 - 1.6, y0 - 1.6], color=PURPLE, lw=1.2)
-    ax.text(52, 33,
-            '说明：Reactive 与 Max-Visibility 即使可见性策略最优，\n'
-            '只要不迁移上下文，每次切换仍丢约 15 万个 CCSDS 分片；\n'
-            'MPTCP-style 的“迟滞 + 双路并行”在卫星确定性场景下反而触发频繁切换。',
-            fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '06_problem_tc.png')
 
 # =========================================================
 # 06 困境② VM
 # =========================================================
 def slide_07():
-    fig, ax = new_slide()
-    header(ax, '困境②：多覆盖网关并发  →  状态分裂与权威副本难题')
-
-    ax.text(4, 84,
-            'LEO 星座中一颗 AOS 卫星在同一时刻经常被 2–3 颗 IPv6 网关同时覆盖；\n'
-            '若每颗候选网关独立维护一份翻译上下文 (TC)，AOS 切换到任意一颗都可能\n'
-            '读到“过期/错乱”的状态。',
-            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
-
-    # 左：示意图
-    import math
-    cx, cy = 22, 48
-    ax.plot(cx, cy, 'o', ms=24, color='#a52828', zorder=5)
-    ax.text(cx, cy, 'AOS', ha='center', va='center', fontsize=10, color='white', weight='bold', zorder=11)
-    coords = [(10, 65, 'g1', 'v=8'), (35, 65, 'g2', 'v=9'),
-              (10, 32, 'g3', 'v=7'), (35, 32, 'g4', 'v=6')]
-    for x, y, name, ver in coords:
-        ax.plot(x, y, 'o', ms=18, color='#3666b8', zorder=5)
-        ax.text(x, y, name, ha='center', va='center', fontsize=9, color='white', weight='bold', zorder=11)
-        ax.text(x, y - 4, ver, ha='center', fontsize=9.5, color='#3666b8', zorder=10)
-        ax.plot([cx, x], [cy, y], color=GRAY, lw=0.8, ls='--', alpha=0.6, zorder=3)
-    ax.text(22, 22, '4 副本同时可见 / 互相不知道版本',
-            ha='center', fontsize=10, color=PURPLE, weight='bold', zorder=10)
-
-    # 右：三个子问题（上移以腾出底部结论区）
-    title_panel(ax, 48, 60, 48, 18, '子问题 A  版本错乱', color='#a52828', fc=LIGHT_RED)
-    ax.text(49.5, 73.5,
-            '· 同一 (scid, vcid) 流被多颗网关并发处理，分片缓冲独立；\n'
-            '· 若不交换“版本号 + 时间戳”，切换瞬间无法判断谁最新；\n'
-            '· 直接用任意副本可能重复 / 丢弃已正确转发的报文。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
-
-    title_panel(ax, 48, 38, 48, 18, '子问题 B  权威性缺失', color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(49.5, 51.5,
-            '· 候选网关对等，无天然 leader、无调度中心；\n'
-            '· Raft/Paxos 需多数派 RTT 协商，ISL 时延高+间断不可见，开销过大；\n'
-            '· 必须采用“最终一致 + 偏序时钟”的轻量协议。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
-
-    title_panel(ax, 48, 16, 48, 18, '子问题 C  副本生命周期', color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(49.5, 29.5,
-            '· 网关进入不可见后旧副本必须过期，否则变“僵尸状态”；\n'
-            '· 副本数量需有上界 (Top-M)，否则 16 颗候选开销线性爆炸；\n'
-            '· 必须有统一 TTL + 显式淘汰规则，保证副本仓库稳态可控。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
-
-    # 底部结论横幅
-    panel(ax, 4, 4, 92, 9, fc='#2e7d4f', ec='#2e7d4f', lw=1.2, alpha=0.95)
-    ax.text(50, 8.5,
-            '结论：需要一种「无需 Leader、轻量级、最终一致」的状态同步机制',
-            ha='center', va='center', fontsize=14, color='white', weight='bold', zorder=11)
-    save(fig, '07_problem_multi.png')
+    image_slide('07_problem_multi.png', '07_problem_multi.png')
 
 
-def slide_06_OLD_VM_DEPRECATED():
-    fig, ax = new_slide()
-    header(ax, '困境②：VM 热迁移“看似可借鉴”，本质并不适用')
-
-    ax.text(5, 82,
-            '云计算 VM Live Migration (Clark et al. 2005) 用 Pre-copy + Stop-and-copy 实现“准零停机”，\n'
-            '其总体思路对卫星协议转换网关切换确有启发；但卫星场景在以下 4 个维度上存在根本差异：',
-            fontsize=11, color=DARK, va='top', linespacing=1.55)
-
-    # 表格
-    rows = [
-        ('维度',         'VM 热迁移 (数据中心)',                 '卫星协议转换网关迁移'),
-        ('协议级状态',   '无 (虚拟机透明，OS/网络栈在内部)',     r'必须迁移 $\mathcal{C}_{\mathrm{frag}}$ 与 $\mathcal{C}_{\mathrm{qos}}$；不在 OS 内核内'),
-        ('链路时变性',   '数据中心带宽稳定、毫秒级时延',          'ISL 带宽随距离/几何时变；含完全不可见窗口'),
-        ('多目标候选',   '单目标主机；调度器集中决策',            '同时被 2–3 颗 IPv6 卫星覆盖  →  状态分裂'),
-        ('时间硬约束',   '可秒级停机；用户感知极弱',              r'物理切换窗口 $T_{\mathrm{phys}}\!\approx\!500$ ms，星历严格确定'),
-    ]
-    y0 = 68
-    col_xs = [5, 22, 55]
-    col_w = [16, 32, 40]
-    for r, row in enumerate(rows):
-        y = y0 - r*7
-        if r == 0:
-            ax.add_patch(Rectangle((5, y - 1), 87, 4.5, fc=PURPLE))
-            for c, v in enumerate(row):
-                ax.text(col_xs[c] + 0.5, y + 1.4, v, fontsize=11.5, color='white', weight='bold', va='center')
-        else:
-            if r % 2 == 0:
-                ax.add_patch(Rectangle((5, y - 1.5), 87, 5.5, fc=LIGHT_PURPLE))
-            for c, v in enumerate(row):
-                color = PURPLE if c == 0 else DARK
-                ax.text(col_xs[c] + 0.5, y + 1.4, v, fontsize=10.5, color=color, va='center')
-
-    # 结论
-    title_panel(ax, 5, 8, 90, 14,
-                '结论：直接照搬 VM 热迁移无法解决卫星问题；必须重新设计协议级 + 时变链路感知 + 多副本的迁移机制。',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(6.5, 16.5,
-            '· 必须显式建模 $\\mathcal{C}_{\\mathrm{static}}$ 与 $\\mathcal{C}_{\\mathrm{dynamic}}$ 的差异，否则无法做“增量同步”；\n'
-            '· 必须把链路带宽 $B(t)$ 和切换截止时间 $T_{\\mathrm{phys}}$ 作为硬约束输入决策器；\n'
-            '· 必须为多覆盖场景设计副本协议，保证多颗候选网关之间收敛到一致视图。',
-            fontsize=10, color=DARK, va='top', linespacing=1.55)
-    save(fig, '07_problem_vm.png')
 
 # =========================================================
 # 07 解决思路
 # =========================================================
 def slide_08():
-    fig, ax = new_slide()
-    header(ax, '解决思路：面向卫星特性的四段式状态迁移机制')
+    image_slide('08_overview.png', '08_overview.png')
 
-    ax.text(4, 84,
-            '四个阶段沿“阶梯”逐级向上，每两步之间的箭头旁直接写出“下一步必须做”的原因。',
-            fontsize=10.8, color=DARK, va='top', linespacing=1.55, zorder=10)
-
-    # 四个阶段沿阶梯排布 (左下 → 右上)
-    stages = [
-        ('① 星历预测',
-         '利用 TLE 可知性，提取剩余可见时长 $\\Delta T_i$、距离、带宽。\n'
-         '把"未来"变成"可知量"。',
-         LIGHT_BLUE, '#3666b8'),
-        ('② Lyapunov 决策',
-         '把"切换次数硬约束"转成虚拟队列 $Q(t)$；\n'
-         'drift-plus-penalty 闭式 $O(N)$ 即可解，给出最优上界。',
-         LIGHT_PURPLE, PURPLE),
-        ('③ 模仿学习 (IL) 网络',
-         '把 Lyapunov 专家策略蒸馏成 45 K 参数的小 MLP；\n'
-         '决策延迟压到 < 0.2 ms，可上星部署。',
-         LIGHT_GREEN, '#2e7d4f'),
-        ('④ 两阶段迁移 + Gossip',
-         'Pre-copy + Stop-copy 解决协议级状态迁移；\n'
-         'Top-M 乐观复制 + Lamport-Gossip 收敛多副本。',
-         LIGHT_ORANGE, '#c8651f'),
-    ]
-    # 阶梯坐标：左下 (x=4, y=14) → 右上 (x=72, y=58)
-    box_w, box_h = 24, 16
-    step_dx = (72 - 4) / 3       # ≈ 22.67
-    step_dy = (58 - 14) / 3      # ≈ 14.67
-    coords = []
-    for i in range(4):
-        x = 4 + i*step_dx
-        y = 14 + i*step_dy
-        coords.append((x, y))
-        title, body, fc, ec = stages[i]
-        panel(ax, x, y, box_w, box_h, fc=fc, ec=ec, lw=1.6)
-        ax.text(x + box_w/2, y + box_h - 2.2, title, ha='center',
-                fontsize=12, color=ec, weight='bold', zorder=10)
-        ax.text(x + box_w/2, y + box_h/2 - 1, body, ha='center', va='center',
-                fontsize=9.4, color=DARK, linespacing=1.6, zorder=10)
-
-    # 阶梯之间的金色斜向箭头 + 旁注（直接说原因，不写"为什么？因为"）
-    reasons = [
-        '星历可预测  →  不再是马尔可夫黑盒；可直接做\n排队论意义下的最优决策（Lyapunov 框架）。',
-        '在线维护 $Q(t)$ 与代价矩阵浮点开销大；\n星上需要恒定低延迟  →  蒸馏成纯前向网络。',
-        '决策对了，状态没迁过去还是会丢包；\n需要协议级迁移 + 多副本一致性兜底。',
-    ]
-    for i in range(3):
-        x0, y0 = coords[i]
-        x1, y1 = coords[i+1]
-        # 箭头从前一块右上角到后一块左下角
-        ax.annotate('', xy=(x1 + 0.5, y1 + 1.5),
-                    xytext=(x0 + box_w - 0.5, y0 + box_h - 1.5),
-                    arrowprops=dict(arrowstyle='->', color=GOLD, lw=2.2),
-                    zorder=11)
-        # 箭头旁注释（放在箭头中点的右侧/下方，按位置错开）
-        mid_x = (x0 + box_w + x1)/2
-        mid_y = (y0 + box_h + y1)/2 - 1
-        ax.text(mid_x + 2.5, mid_y, reasons[i], fontsize=8.8, color=DARK,
-                va='center', linespacing=1.5, zorder=10,
-                bbox=dict(boxstyle='round,pad=0.35', fc='white', ec=GOLD, lw=0.8, alpha=0.95))
-
-    save(fig, '08_overview.png')
 
 # =========================================================
 # 08 详细原理①：系统模型 + TC
 # =========================================================
 def slide_09():
-    fig, ax = new_slide()
-    header(ax, '算法1：基于 Lyapunov drift-plus-penalty 的预测性决策')
+    image_slide('09_principle_model.png', '09_principle_model.png')
 
-    # 左：我们优化什么？
-    title_panel(ax, 4, 28, 46, 55, '我们优化什么？', color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(5.5, 78, '即时代价  $c(t)$  =  三项加权和：',
-            fontsize=11, color=PURPLE, weight='bold', zorder=10)
-    ax.text(5.5, 73,
-            r'$c(t)=\alpha\cdot\mathbf{1}\{\mathrm{interrupt}\}\;+\;\beta\cdot L(t)\;+\;\gamma\cdot\mathbf{1}\{\mathrm{switch}\}$',
-            fontsize=11.5, color=DARK, zorder=10)
-    bullets_left = [
-        (r'· 中断罚 $\alpha\cdot\mathbf{1}\{\mathrm{interrupt}\}$ : 若不可见或快飞走；'),
-        (r'· 负载罚 $\beta\cdot L(t)$ : 避免某个网关单点拥塞；'),
-        (r'· 抖动罚 $\gamma\cdot\mathbf{1}\{\mathrm{switch}\}$ : 抑制频繁切换。'),
-    ]
-    for i, b in enumerate(bullets_left):
-        ax.text(5.5, 67 - i*3.6, b, fontsize=10, color=DARK, zorder=10)
-
-    ax.text(5.5, 53, '优化目标：长期平均代价最小化  +  切换率有硬上限',
-            fontsize=11, color=PURPLE, weight='bold', zorder=10)
-    ax.text(5.5, 48,
-            r'$\min\;\bar{c}=\lim_{T\to\infty}\frac{1}{T}\sum_{t=0}^{T-1}c(t)$,'
-            r'   s.t.   $\bar{s}_{\mathrm{sw}}\;\leq\;C_{\max}$',
-            fontsize=11, color=DARK, zorder=10)
-    ax.text(5.5, 41,
-            '· 纯贪心 $c(t)$ 最小会频繁切；\n'
-            r'· 加硬约束 $C_{\max}$ 又会变成离线整数规划；'
-            '\n'
-            '· 关键：用什么机制把"硬约束"在线化？',
-            fontsize=10, color=DARK, va='top', linespacing=1.65, zorder=10)
-    ax.text(5.5, 30.5,
-            '即时代价的三项均已量纲归一，reward 不依赖星座规模。',
-            fontsize=9.5, color=GRAY, va='center', style='italic', zorder=10)
-
-    # 右：Lyapunov 如何破局 — 借贷比喻
-    title_panel(ax, 52, 28, 44, 55,
-                'Lyapunov 如何破局？— 把硬约束变成"债务"', color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(53.5, 78,
-            r'引入"虚拟队列" $Q(t)$ ：',
-            fontsize=11, color='#c8651f', weight='bold', zorder=10)
-    ax.text(53.5, 73.5,
-            r'$Q(t+1)=\max\{Q(t)+\mathbf{1}\{\mathrm{switch}\}-C_{\max}\Delta t,\,0\}$',
-            fontsize=11, color=DARK, zorder=10)
-    ax.text(53.5, 68.5,
-            '· 把 $Q(t)$ 想成"切换预算债务"账户；\n'
-            '· 切了 → 债务 $Q$ 增大 → 下一步算法倾向于"不切"；\n'
-            '· 没切 → 债务被偿还 → 遇到更好的网关就敢切；\n'
-            '· 长期看，债务自动逼平 → 切换率自然 $\\leq C_{\\max}$。',
-            fontsize=9.8, color=DARK, va='top', linespacing=1.7, zorder=10)
-
-    ax.text(53.5, 50.5,
-            'Drift-plus-penalty 闭式策略：',
-            fontsize=11, color='#c8651f', weight='bold', zorder=10)
-    ax.text(53.5, 46,
-            r'$a^{*}(t)=\arg\min_a\;[\,V\cdot c_a(t)\;+\;Q(t)\cdot\mathbf{1}\{a\neq a_{\mathrm{prev}}\}\,]$',
-            fontsize=11, color=DARK, zorder=10)
-    ax.text(53.5, 40,
-            '白话批注：选哪个网关 =\n'
-            r'   它的当期综合成本 $V\!\cdot\!c$  +  选它导致的债务压力 $Q$。',
-            fontsize=9.8, color=DARK, va='top', linespacing=1.65, zorder=10)
-    ax.text(53.5, 32,
-            '· $V$ 大：偏向低代价、可能多切；\n'
-            '· $V$ 小：偏向少切、可能高代价。',
-            fontsize=9.5, color=DARK, va='top', linespacing=1.6, zorder=10)
-
-    # 底部结论横幅
-    panel(ax, 4, 4, 92, 20, fc=LIGHT_PURPLE, ec=PURPLE, lw=1.2, alpha=0.95)
-    ax.text(50, 19,
-            '性能上界（$T\\to\\infty$）',
-            ha='center', fontsize=11, color=PURPLE, weight='bold', zorder=11)
-    ax.text(50, 14.5,
-            r'$\bar{c}^{\,\mathrm{Lyap}}\;\leq\;\bar{c}^{*}\;+\;B/V$       (utility gap)         '
-            r'$\bar{Q}\;\leq\;(\,B+V(c_{\max}-c_{\min})\,)/\epsilon$       (constraint)',
-            ha='center', fontsize=11, color=DARK, zorder=11)
-    ax.text(50, 8,
-            r'即：算法收敛到 $[O(1/V),\,O(V)]$ 的效用-切换次数权衡上界；每时隙决策为 $O(N)$ 极简计算。',
-            ha='center', fontsize=10.5, color=DARK, zorder=11)
-    save(fig, '09_algo1_lyapunov.png')
 
 # =========================================================
 # 10 详细原理③：IL
 # =========================================================
 def slide_10():
-    fig, ax = new_slide()
-    header(ax, '算法2：面向星上部署的模仿学习 (IL) 策略网络')
+    image_slide('10_principle_lyapunov.png', '10_principle_lyapunov.png')
 
-    # 左：动机 + 网络结构
-    title_panel(ax, 4, 56, 46, 28,
-                '动机  (为什么不用纯 Lyapunov 或 DRL ?)', color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(5.5, 76,
-            '· 真实卫星 CPU/FPGA 处理浮点比较复杂，\n'
-            '  在线维护虚拟队列 $Q(t)$ 有延迟波动；\n'
-            '· Pure DRL (如 DQN) 在确定性星历场景下\n'
-            '  训练难、方差大 (实测 reward 差 4.7×)。',
-            fontsize=10, color=DARK, va='top', linespacing=1.7, zorder=10)
-
-    title_panel(ax, 4, 28, 46, 26, '网络结构  GatewayPolicyNet', color=PURPLE, fc=LIGHT_PURPLE)
-    layers = [
-        ('输入 $x_t$ (80 维) — $\\Delta T_i,L_i,V_i,$ onehot', LIGHT_BLUE, '#3666b8'),
-        ('Linear 80 → 128 + ReLU + Dropout(0.1)', LIGHT_PURPLE, PURPLE),
-        ('Linear 128 → 128 + ReLU + Dropout',     LIGHT_PURPLE, PURPLE),
-        ('Linear 128 → 16 + softmax · visibility', LIGHT_GREEN, '#2e7d4f'),
-        ('输出 $a_t$ (argmax)',                    LIGHT_ORANGE, '#c8651f'),
-    ]
-    for i, (t, fc, ec) in enumerate(layers):
-        y = 48 - i*3.6
-        panel(ax, 6, y, 42, 3.2, fc=fc, ec=ec, lw=1.0)
-        ax.text(7, y + 1.5, t, fontsize=9.4, color=DARK, va='center', zorder=10)
-
-    # 右：解决方案 (DAgger) + 高光对比
-    title_panel(ax, 52, 50, 44, 34,
-                '解决方案：行为克隆 + DAgger 扩增', color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(53.5, 78,
-            r'$\mathcal{L}_{\mathrm{BC}}=-\frac{1}{|\mathcal{M}|}\sum_{(s,a)\in\mathcal{M}}\log\pi_\theta(a|s)$',
-            fontsize=11.5, color=DARK, zorder=10)
-    ax.text(53.5, 73,
-            '把 Lyapunov 在线求解器当作"专家"，',
-            fontsize=10, color=DARK, zorder=10)
-    ax.text(53.5, 69.5,
-            r'生成海量 (State, Action) 轨迹。',
-            fontsize=10, color=DARK, zorder=10)
-    ax.text(53.5, 64,
-            '训练轻量级 3 层 MLP\n'
-            '(GatewayPolicyNet, ≈45 K 参数, 180 KB)。',
-            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
-    ax.text(53.5, 56,
-            '采用 DAgger 施加高斯噪声扰动，\n'
-            '提高应对 OOD 极端负载的鲁棒性。',
-            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
-
-    title_panel(ax, 52, 12, 44, 34,
-                '高光对比：工程意义', color='#2e7d4f', fc=LIGHT_GREEN)
-    ax.text(53.5, 40,
-            '零精度损失', fontsize=11.5, color='#2e7d4f', weight='bold', zorder=10)
-    ax.text(53.5, 36,
-            '验证集准确率 99.91 %，与专家决策轨迹完全一致。',
-            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
-    ax.text(53.5, 30,
-            '推理极速', fontsize=11.5, color='#2e7d4f', weight='bold', zorder=10)
-    ax.text(53.5, 26,
-            '同机 CPU NumPy 纯前向推理仅 0.144 ms，\n'
-            '单次决策时隙 (1 s) 富余 5000 多倍，\n'
-            '完美满足星载实时性硬约束。',
-            fontsize=10, color=DARK, va='top', linespacing=1.6, zorder=10)
-    ax.text(53.5, 15.5,
-            '即：IL 把"理论上最优 + 工程上可上星"两件事一并解决。',
-            fontsize=9.5, color=GRAY, va='center', style='italic', zorder=10)
-
-    # 底部小结
-    ax.text(4, 22,
-            '· 总参数 45 456 (~45 K)，权重约 180 KB → 可装入星上 SRAM；\n'
-            '· 推理延迟可上界，决策周期富余 5 000×。',
-            fontsize=10, color=DARK, va='top', linespacing=1.65, zorder=10)
-    save(fig, '10_algo2_il.png')
 
 # =========================================================
 # 11 详细原理④：两阶段迁移
 # =========================================================
 def slide_11():
-    fig, ax = new_slide()
-    header(ax, '详细原理④：两阶段协议转换状态迁移')
+    image_slide('11_principle_il.png', '11_principle_il.png')
 
-    # 顶部时序条 — 紧凑
-    ax.text(5, 84, r'时序流程  ( 在切换前 $t_{\mathrm{pre}}=3$ s 触发 )',
-            fontsize=12, color=PURPLE, weight='bold', zorder=10)
-    bars = [
-        ('Pre-copy',   LIGHT_BLUE,   '#3666b8', 32,
-         r'A → B 推送 $\mathcal{C}_{\mathrm{static}}$；A 拍 $\mathcal{C}_{\mathrm{dyn}}$ 快照；A 继续服务'),
-        ('Stop-copy',  LIGHT_ORANGE, '#c8651f', 14,
-         r'A 冻结 $\mathcal{C}_{\mathrm{dyn}}$ → 传 $\Delta\mathcal{C}_{\mathrm{dyn}}$ → B'),
-        (r'$T_{\mathrm{phys}}\!=\!500$ ms', LIGHT_RED, '#a52828', 8, '天线转向 + 链路重建'),
-        ('B 接管',     LIGHT_GREEN,  '#2e7d4f', 16, 'C 完整、0 丢包'),
-    ]
-    x0 = 5; total = sum(b[3] for b in bars); span = 90
-    cur = x0
-    for name, fc, ec, w, sub in bars:
-        ww = span * w / total
-        ax.add_patch(Rectangle((cur, 77), ww, 3.5, fc=fc, ec=ec, lw=1.3, zorder=3))
-        ax.text(cur + ww/2, 78.7, name, ha='center', va='center',
-                fontsize=9.5, color=ec, weight='bold', zorder=10)
-        ax.text(cur + ww/2, 74.5, sub, ha='center', va='top',
-                fontsize=8.3, color=GRAY, zorder=10)
-        cur += ww
-
-    # 左：关键耗时与判据
-    title_panel(ax, 4, 38, 44, 32, '关键耗时公式与无缝判据',
-                color='#c8651f', fc=LIGHT_ORANGE)
-    ax.text(5.5, 65, r'Pre-copy 耗时 (业务不冻结，不计入 sync) :',
-            fontsize=10.5, color=PURPLE, weight='bold', zorder=10)
-    ax.text(7, 60.5,
-            r'$t_{\mathrm{precopy}}=\dfrac{|\mathcal{C}_{\mathrm{static}}|}{B(A,B)\cdot\eta}+\tau(A,B)$',
-            fontsize=12, color=DARK, zorder=10)
-    ax.text(5.5, 55, r'Stop-and-copy 耗时 (业务冻结，关键路径) :',
-            fontsize=10.5, color=PURPLE, weight='bold', zorder=10)
-    ax.text(7, 50.5,
-            r'$t_{\mathrm{stop}}=\dfrac{|\Delta\mathcal{C}_{\mathrm{dyn}}|}{B(A,B)\cdot\eta}+\tau$',
-            fontsize=12, color=DARK, zorder=10)
-    ax.text(5.5, 45,
-            r'无缝判据 : $T_{\mathrm{sync}}=t_{\mathrm{stop}}\leq T_{\mathrm{phys}}$ ?',
-            fontsize=11.5, color='#a52828', weight='bold', zorder=10)
-    ax.text(5.5, 41,
-            r'$\eta$：ISL 有效吞吐折算 (含 ARQ 重传)；$\tau$：信令双向确认 (30 ms)。',
-            fontsize=9.5, color=GRAY, va='center', zorder=10)
-
-    # 左下：设计要点
-    title_panel(ax, 4, 11, 44, 24, '为什么必须两阶段 (而非一次性 stop-copy)',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(5.5, 31,
-            r'· 直接 stop-copy 需冻结 $|\mathcal{C}_{\mathrm{static}}|+|\mathcal{C}_{\mathrm{dyn}}|$ ≈ 288 B + 数 KB；'
-            '\n'
-            r'  在 ISL 50 Mbps 链路上仍需 ≈ 700 ms — 已超过 $T_{\mathrm{phys}}=500$ ms。'
-            '\n'
-            '· 拆成 Pre-copy + Stop-copy 后，关键路径只剩 $\\Delta\\mathcal{C}_{\\mathrm{dyn}}$，\n'
-            r'  通常仅几百字节 → $t_{\mathrm{stop}}<30$ ms，留出充足余量。'
-            '\n'
-            '· Pre-copy 在切换前 3 s 启动，与业务报文复用 ISL，开销几乎不可感知。',
-            fontsize=10.2, color=DARK, va='top', linespacing=1.55, zorder=10)
-
-    # 右上：两阶段迁移的本质  (y=50..73，与顶部时序条留 4 单位空白)
-    title_panel(ax, 51, 50, 46, 23,
-                '两阶段迁移的本质：把“关键路径”尽可能缩短',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(52.5, 67.5,
-            '· Pre-copy 与 $T_{\\mathrm{phys}}$ 都不冻结业务；\n'
-            r'· 关键路径只剩 Stop-copy 一段 ($t_{\mathrm{stop}}$)；'
-            '\n'
-            r'· 把硬切换中断 0.3-1 s 压缩到约 50 ms 量级；'
-            '\n'
-            r'· $\mathcal{C}_{\mathrm{static}}\approx 288$ B 一次推完，'
-            r'$\Delta\mathcal{C}_{\mathrm{dyn}}$ 仅几百字节增量。',
-            fontsize=9.4, color=DARK, va='top', linespacing=1.75, zorder=10)
-
-    # 右下：对比表  (y=8..46，与右上留 4 单位空白)
-    title_panel(ax, 51, 8, 46, 38,
-                '两阶段 vs 单阶段 (硬切换) 的本质差别',
-                color='#c8651f', fc=LIGHT_ORANGE)
-    rows = [
-        ('对比项',         '硬切换 (单阶段)',     '两阶段 (本方案)'),
-        ('关键路径耗时',   '迁全部 ≈ 700 ms',     r'仅 $\Delta\mathcal{C}_{\mathrm{dyn}}$ < 50 ms'),
-        ('业务可见中断',   '0.3-1 s 全丢',         '0 (B 接管时完整)'),
-        ('对带宽要求',     '瞬时高峰',             '与业务流并行均摊'),
-        ('失败处理',       '只能重连',             '三层降级兜底'),
-    ]
-    col_xs = [53, 67, 83]
-    y_top = 41
-    for r, row in enumerate(rows):
-        y = y_top - r*4.2
-        if r == 0:
-            ax.add_patch(Rectangle((51.5, y - 1.6), 45, 3.6, fc='#c8651f', alpha=0.92, zorder=3))
-            for c, v in enumerate(row):
-                ax.text(col_xs[c], y + 0.4, v, fontsize=9.2, color='white',
-                        weight='bold', va='center', zorder=11)
-        else:
-            for c, v in enumerate(row):
-                color = PURPLE if c == 0 else ('#a52828' if c == 1 else '#2e7d4f')
-                ax.text(col_xs[c], y + 0.4, v, fontsize=8.8, color=color,
-                        va='center', zorder=10)
-    # panel 底部注脚
-    ax.text(52.5, 14,
-            '即：把“一次性大停机”拆成“多次小拷贝 + 一次微小同步”，\n'
-            r'实现 Make-before-Break — 零中断 / 零丢包的根本来源。',
-            fontsize=8.8, color=GRAY, va='top', linespacing=1.55, style='italic', zorder=10)
-    save(fig, '11_principle_twophase.png')
 
 # =========================================================
 # 12 详细原理⑤：三层降级
 # =========================================================
 def slide_12():
-    fig, ax = new_slide()
-    header(ax, '详细原理⑤：三层降级策略 (卫星场景独有设计)')
+    image_slide('12_principle_twophase.png', '12_principle_twophase.png')
 
-    ax.text(5, 82,
-            r'若 $T_{\mathrm{sync}}>T_{\mathrm{phys}}$，无法在物理切换窗口内完成全量迁移，' '\n'
-            '则按下表逐层降级，优先保护“已投入算力且接近完成”的分片与高优先级业务。',
-            fontsize=11, color=DARK, va='top', linespacing=1.55)
-
-    levels = [
-        ('L1 SEAMLESS',  LIGHT_GREEN,  '#2e7d4f',
-         r'$T_{\mathrm{sync}}\leq T_{\mathrm{phys}}$',
-         '全量迁移：所有静态 + 动态上下文均拷贝完成，B 接管时 $\\mathcal{C}$ 完整、0 丢包。'),
-        ('L2 DEGRADED-1', LIGHT_GOLD, GOLD,
-         'L1 失败 (带宽/时延受限)',
-         r'仅迁移 $\geq 50\%$ 完成度的分片 + 全部 QoS 队列；服务连续，仅未达半数分片丢失。'),
-        ('L3 DEGRADED-2', LIGHT_ORANGE, '#c8651f',
-         'L2 仍失败',
-         r'仅迁移高优先级 VCID (vcid $\leq$ 1) 的 $\geq 50\%$ 分片；保证关键业务不中断。'),
-        ('L4 FAILED',   LIGHT_RED, '#a52828',
-         'L3 仍失败 (链路恶化)',
-         '回退为硬切换 (等效传统方法)，记录事件供后续策略学习；不会比 baseline 更差。'),
-    ]
-    y_top = 75; row_h = 11
-    for i, (name, fc, ec, trig, body) in enumerate(levels):
-        y = y_top - i * (row_h + 1)
-        panel(ax, 4, y - row_h, 92, row_h, fc=fc, ec=ec, lw=1.4)
-        # 左列：等级 + 触发条件 (放在 panel 内部)
-        ax.text(6, y - 3.5, name, fontsize=12.5, color=ec, weight='bold', va='center', zorder=10)
-        ax.text(6, y - 7, '触发：' + trig, fontsize=9.5, color=GRAY, va='center', zorder=10)
-        # 右列：描述
-        ax.text(25, y - 5.5, body, fontsize=10.5, color=DARK, va='center', linespacing=1.5, zorder=10)
-
-    title_panel(ax, 4, 5, 92, 10,
-                r'理论依据：完成度 $\geq 50\%$ 的分片“投资已超过半数”，继续迁移边际收益 > 重传成本',
-                color=PURPLE, fc=LIGHT_PURPLE)
-    ax.text(5.5, 11,
-            '· 设单分片重组需 $n$ 片，已收到 $k$ 片；若 $k/n\\geq 0.5$，迁移已收到部分的字节代价 < 全部重传代价；\n'
-            '· 5 种子 × 30 min 仿真中，本机制使所有切换稳定走 L1 路径，未触发任何 L2/L3/L4 — 三层降级是兜底而非常态。',
-            fontsize=9.8, color=DARK, va='top', linespacing=1.55, zorder=10)
-    save(fig, '12_principle_degrade.png')
 
 # =========================================================
 # 13 详细原理⑥：Top-M + Gossip
 # =========================================================
 def slide_13():
-    fig, ax = new_slide()
-    header(ax, '详细原理⑥：Top-M 乐观复制 + Lamport-Gossip 最终一致')
+    image_slide('13_principle_degrade.png', '13_principle_degrade.png')
 
-    ax.text(5, 82, r'问题：$k\geq 2$ 颗 IPv6 网关并发覆盖同一 AOS  →  状态分裂',
-            fontsize=12.5, color=PURPLE, weight='bold')
-    ax.text(5, 78,
-            '不同网关各自维护 TC 副本；若不协调，AOS 切换到其中任一颗都可能看到“过期视图”。\n'
-            '强一致 (Raft) 在 ISL 高时延 + 抖动场景代价过高，本方案采用“乐观复制 + 最终一致”。',
-            fontsize=10.5, color=DARK, va='top', linespacing=1.55)
-
-    # 左：score 图示
-    import math
-    ax.text(5, 70, r'Top-M 选副本：$\mathrm{score}_i=\Delta T_i - 50\!\cdot\!L_i$，默认 $M=2$',
-            fontsize=12, color=PURPLE, weight='bold')
-    nodes = [
-        ('g1',  '$\\Delta T=30, L=0.2$',  '26',  15, 60, '#2e7d4f', True),
-        ('g2',  '$\\Delta T=45, L=0.5$',  '20',  35, 60, '#2e7d4f', True),
-        ('g3',  '$\\Delta T=10, L=0.4$',  '$-10$',15, 36, '#cfcfcf', False),
-        ('g4',  '$\\Delta T=20, L=0.7$',  '$-15$',35, 36, '#cfcfcf', False),
-    ]
-    cx, cy = 25, 48
-    ax.plot(cx, cy, 'o', ms=22, color='#a52828')
-    ax.text(cx, cy, 'AOS', ha='center', va='center', fontsize=9, color='white', weight='bold')
-    for name, attr, sc, nx, ny, color, sel in nodes:
-        ax.plot(nx, ny, 'o', ms=18, color=color)
-        ax.text(nx, ny, name, ha='center', va='center', fontsize=9, color='white', weight='bold')
-        ax.text(nx, ny + 3.5, attr, ha='center', fontsize=8.5, color=DARK)
-        ax.text(nx, ny - 3, 'score = ' + sc, ha='center', fontsize=8.5, color=color)
-        lw = 1.8 if sel else 0.6
-        ax.plot([cx, nx], [cy, ny], color=color, lw=lw, alpha=(1.0 if sel else 0.4))
-    ax.text(5, 26,
-            r'并行预复制 $\mathcal{C}_{\mathrm{static}}$ ( ≈ 288 B/份 ) 至 Top-M 候选；'
-            '开销 << ISL 带宽。\n'
-            '一旦决策切换到任意候选，目标网关已有静态上下文，Stop-copy 仅需增量。',
-            fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-
-    # 右上：Gossip 协议
-    ax.text(52, 82, 'Gossip 一致性维护', fontsize=13, color=PURPLE, weight='bold')
-    items = [
-        r'副本仓库：$R_g=\{(s,\,\mathcal{C}_{\mathrm{static}},\,v,\,t_w,\,\tau_{\mathrm{TTL}})\}$',
-        r'周期 Gossip ( 10 s )：广播 $(s,v,t_w)$ 摘要，非全量推送；',
-        r'接收方：本地 $v<v_{\mathrm{msg}}$  →  按版本号淘汰旧副本；',
-        r'TTL 淘汰：副本超 $\tau_{\mathrm{TTL}}$ 自动失效，避免“僵尸”状态；',
-        'Lamport 逻辑时钟：保证偏序，避免乱序回滚。',
-    ]
-    for i, t in enumerate(items):
-        ax.text(52.5, 76 - i*4.5, '·', fontsize=12, color=GOLD)
-        ax.text(54, 76 - i*4.5, t, fontsize=10.5, color=DARK, va='center')
-
-    # 右下：对比表
-    ax.text(52, 52, 'vs Raft (强一致) 对比', fontsize=13, color=PURPLE, weight='bold')
-    rows = [
-        ('维度',         'Raft',                  '本方案 Gossip'),
-        ('一致性',       '线性一致 (强)',         '最终一致'),
-        ('消息复杂度',   r'$O(N^{2})$ / 决策',   r'$O(N)$ / 周期'),
-        ('延迟',         r'$\geq 2$ RTT 阻塞',   '异步无阻塞'),
-        ('卫星适用性',   '差 (ISL 时延高)',      '好'),
-    ]
-    y0 = 47
-    cols = [52, 67, 82]
-    for r, row in enumerate(rows):
-        y = y0 - r*4
-        if r == 0:
-            ax.add_patch(Rectangle((52, y - 1), 43, 3.5, fc=PURPLE))
-            for c, v in enumerate(row):
-                ax.text(cols[c] + 0.3, y + 0.7, v, fontsize=10, color='white', weight='bold', va='center')
-        else:
-            if r % 2 == 0:
-                ax.add_patch(Rectangle((52, y - 1.4), 43, 3.8, fc=LIGHT_PURPLE))
-            for c, v in enumerate(row):
-                ax.text(cols[c] + 0.3, y + 0.7, v, fontsize=9.5, color=DARK, va='center')
-    ax.text(52, 23,
-            '实测 (30 min)：179 轮 Gossip / 安装 1 副本 / 淘汰 1 个；\n'
-            '三条路径 (写、传播、淘汰) 全部打通；总开销 << ISL 带宽。',
-            fontsize=10, color='#2e7d4f', va='top', linespacing=1.55, style='italic')
-    save(fig, '13_principle_gossip.png')
 
 # =========================================================
 # 14 关键算法伪代码
 # =========================================================
+
+# =========================================================
+# 14 详细原理⑥：Top-M 乐观复制 + Lamport-Gossip
+# =========================================================
 def slide_14():
+    image_slide('14_principle_gossip.png', '14_principle_gossip.png')
+
+def slide_15():
     fig, ax = new_slide()
     header(ax, '关键算法伪代码')
 
@@ -1034,12 +343,12 @@ def slide_14():
     for i, t in enumerate(feats):
         ax.text(52.5, 33 - i*3.6, '•', fontsize=11, color=GOLD, va='center', zorder=10)
         ax.text(54.5, 33 - i*3.6, t, fontsize=10, color=DARK, va='center', zorder=10)
-    save(fig, '14_pseudocode.png')
+    save(fig, '15_pseudocode.png')
 
 # =========================================================
 # 15 实验设计
 # =========================================================
-def slide_15():
+def slide_16():
     fig, ax = new_slide()
     header(ax, '实验设计：合成星座 + 6 方案对比 + 5 种子统计')
 
@@ -1103,12 +412,12 @@ def slide_15():
             '迁移分片数、平均/最差 reward、决策延迟 (CPU/GPU)、Gossip 收敛轮数、各阶段时长。\n'
             '统计方法：5 个独立测试种子 → mean ± std；显著性差异采用配对 t-test (本工作 vs MPTCP)。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '15_exp_design.png')
+    save(fig, '16_exp_design.png')
 
 # =========================================================
 # 16 实验流程（重点：每步多文字）
 # =========================================================
-def slide_16():
+def slide_17():
     """实验流程总览 — 6 个阶段一句话概括，后续 17-22 单独展开"""
     fig, ax = new_slide()
     header(ax, '实验流程总览  ( RTX 4090 · 共 6 个 Stage · 后续 6 页逐一展开 )')
@@ -1141,10 +450,10 @@ def slide_16():
         ax.text(19, y - 2.3, name, fontsize=12, color=PURPLE, weight='bold', va='top', zorder=10)
         ax.text(19, y - 5.5, brief, fontsize=10, color=DARK, va='top', linespacing=1.55, zorder=10)
         # 详见 →
-        ax.text(94, y - 4.2, '→ 详见 P.' + str(17 + i),
+        ax.text(94, y - 4.2, '→ 详见 P.' + str(18 + i),
                 fontsize=9.5, color=ec, ha='right', va='center', style='italic', zorder=10)
 
-    save(fig, '16_exp_flow.png')
+    save(fig, '17_exp_flow.png')
 
 
 # ============ 实验流程  Stage 1-6 逐页详细展开 ============
@@ -1182,7 +491,7 @@ def _stage_detail_layout(ax, stage_no, name, color, fc_light, dur,
     ax.text(51.5, 11.5, extra, fontsize=9.4, color=DARK, va='top', linespacing=1.6, zorder=10)
 
 
-def slide_17():
+def slide_18():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 1', '拓扑构建 (orbit + topology)', '#3666b8', LIGHT_BLUE, '5 s',
@@ -1215,10 +524,10 @@ def slide_17():
         extra='RTX 4090 上 5 s 内完成；Stage 1 失败会导致后续全部阶段不可用，\n'
               '故脚本对 visibility / remaining 做了一致性自检，含 31 个单元测试。'
     )
-    save(fig, '17_flow_stage1.png')
+    save(fig, '18_flow_stage1.png')
 
 
-def slide_18():
+def slide_19():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 2', 'Lyapunov 专家轨迹生成 + IL 模仿训练', PURPLE, LIGHT_PURPLE, '30 s',
@@ -1250,10 +559,10 @@ def slide_18():
         extra='RTX 4090 上 30 s 内完成；显存峰值 < 1.5 GB。\n'
               '若改为纯 CPU 训练，时间约 4 min — 仍属于可接受范围。'
     )
-    save(fig, '18_flow_stage2.png')
+    save(fig, '19_flow_stage2.png')
 
 
-def slide_19():
+def slide_20():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 3', 'DQN 消融训练', '#c8651f', LIGHT_ORANGE, '13 min',
@@ -1284,10 +593,10 @@ def slide_19():
         extra='RTX 4090 上 13 min；若用 RTX 3060 约 35 min。\n'
               '消融结果：DQN reward 是 IL 专家的 4.7× 差 — 强证明决策框架本身就比 DRL 更适合本场景。'
     )
-    save(fig, '19_flow_stage3.png')
+    save(fig, '20_flow_stage3.png')
 
 
-def slide_20():
+def slide_21():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 4', '6 方案 × 5 种子 = 30 次 SimPy 仿真', '#2e7d4f', LIGHT_GREEN, '1.5 min',
@@ -1317,10 +626,10 @@ def slide_20():
         extra='RTX 4090 利用率 ~0 % (本阶段是 CPU 仿真，GPU 仅做 IL 推理)；\n'
               '内存峰值 ~600 MB，可在 8 GB RAM 笔记本完整复现。'
     )
-    save(fig, '20_flow_stage4.png')
+    save(fig, '21_flow_stage4.png')
 
 
-def slide_21():
+def slide_22():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 5', '推理延迟基准 (CPU / GPU benchmark)', GOLD, LIGHT_GOLD, '10 s',
@@ -1348,10 +657,10 @@ def slide_21():
         extra='RTX 4090 推理峰值显存 < 50 MB；CPU 单核占用 ~25 %。\n'
               '换到星载等级的 Cortex-A72 CPU 估计推理仍 < 2 ms — 仍远低于 1 s 决策周期。'
     )
-    save(fig, '21_flow_stage5.png')
+    save(fig, '22_flow_stage5.png')
 
 
-def slide_22():
+def slide_23():
     fig, ax = new_slide()
     _stage_detail_layout(ax,
         'Stage 6', '指标聚合、出图与报告生成', '#a52828', LIGHT_RED, '< 10 s',
@@ -1385,12 +694,12 @@ def slide_22():
         extra='< 10 s 即可完成；不依赖 GPU。\n'
               '生成的报告是写大论文 / 投稿 / 阶段汇报的“唯一事实源”。'
     )
-    save(fig, '22_flow_stage6.png')
+    save(fig, '23_flow_stage6.png')
 
 # =========================================================
 # 17 实验结果①：训练
 # =========================================================
-def slide_23():
+def slide_24():
     fig, ax = new_slide()
     header(ax, '实验结果①：训练阶段产出与 DQN 消融')
 
@@ -1444,12 +753,12 @@ def slide_23():
             '说明 IL 网络的“信息瓶颈”不是模型容量，而是专家轨迹本身的最优 action 在状态空间上是几乎可分的；\n'
             '这也解释了 DQN 学不好的原因：reward 信号弱，但监督信号一旦给到，就能瞬间学会。',
             fontsize=10, color=GRAY, va='top', linespacing=1.55, style='italic')
-    save(fig, '23_train_results.png')
+    save(fig, '24_train_results.png')
 
 # =========================================================
 # 18 主表
 # =========================================================
-def slide_24():
+def slide_25():
     fig, ax = new_slide()
     header(ax, '实验结果②：测试综合指标  (5 seed mean ± std)')
 
@@ -1491,12 +800,12 @@ def slide_24():
     for i, t in enumerate(bullets):
         ax.text(5.5, 35 - i*4.5, '•', fontsize=12, color=GOLD)
         ax.text(7.5, 35 - i*4.5, t, fontsize=11, color=DARK, va='center')
-    save(fig, '24_main_table.png')
+    save(fig, '25_main_table.png')
 
 # =========================================================
 # 19 关键可视化
 # =========================================================
-def slide_25():
+def slide_26():
     fig, ax = new_slide()
     header(ax, '实验结果③：关键可视化  (4 张图逐图解读)')
 
@@ -1530,12 +839,12 @@ def slide_25():
         # 文字解读（底部 7 单位高）
         ax.text(cx + 1.5, cy + 6.5, an, fontsize=9.5, color=DARK,
                 va='top', linespacing=1.55, zorder=10)
-    save(fig, '25_visualizations.png')
+    save(fig, '26_visualizations.png')
 
 # =========================================================
 # 20 结论
 # =========================================================
-def slide_26():
+def slide_27():
     fig, ax = new_slide()
     header(ax, '结论')
 
@@ -1632,16 +941,17 @@ def slide_26():
         ax.text(53.5, y, '·', fontsize=11, color='#3666b8', va='center', zorder=10)
         ax.text(55.5, y, t, fontsize=9.2, color=DARK, va='center', zorder=10)
 
-    save(fig, '26_conclusion.png')
+    save(fig, '27_conclusion.png')
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for fn in [slide_01, slide_02, slide_03, slide_04, slide_05, slide_06,
-               slide_07, slide_08, slide_09, slide_10, slide_11,
-               slide_12, slide_13, slide_14, slide_15, slide_16,
-               slide_17, slide_18, slide_19, slide_20, slide_21, slide_22,
-               slide_23, slide_24, slide_25, slide_26]:
+    for fn in [slide_01, slide_02,
+               slide_03, slide_04, slide_05, slide_06, slide_07, slide_08,
+               slide_09, slide_10, slide_11, slide_12, slide_13, slide_14,
+               slide_15, slide_16, slide_17,
+               slide_18, slide_19, slide_20, slide_21, slide_22, slide_23,
+               slide_24, slide_25, slide_26, slide_27]:
         fn()
 
 if __name__ == '__main__':
