@@ -203,22 +203,13 @@ def main():
           f"val_loss={il_out['history']['val_loss'][-1]:.4f}")
     print(f"IL ckpt: {il_out['ckpt']}")
 
-    print("\n" + "=" * 70)
-    print("Stage 3: 训练 Pure DRL (DQN) — 消融对比")
-    print("=" * 70)
-    dqn_loads = [synthesize_gateway_loads(train_topo.num_gateways, train_topo.num_steps,
-                                          np.random.default_rng(CFG.seed + 100 + k))
-                 for k in range(RUN_CFG["num_train_scenarios"])]
-    dqn_out = train_dqn([train_topo] * RUN_CFG["num_train_scenarios"], dqn_loads,
-                        epochs=RUN_CFG["dqn_epochs"], tag="ablation_dqn", verbose=True)
-    print(f"DQN 最终平均 reward = {dqn_out['history'][-1]:.4f} "
-          f"(对比 IL 专家 = {np.mean([t.rewards.mean() for t in expert_trajs]):.4f})")
+    # Stage 3 (训练 Pure DRL/DQN) 已删除——不再作为对比方案
+    dqn_out = None
 
     print("\n" + "=" * 70)
     print(f"Stage 4: 在 {RUN_CFG['num_test_seeds']} 个测试种子上跑全部方案")
     print("=" * 70)
-    scheme_names = ["Reactive", "Max-Visibility", "MPTCP-style",
-                    "Pure-DRL", "Ours-Lyap", "Ours-IL"]
+    scheme_names = ["Reactive", "Max-Visibility", "MPTCP-style", "Ours"]
     # 收集 [scheme] -> [seed] -> SimResults
     results_by_scheme: dict[str, list] = {n: [] for n in scheme_names}
     summaries_by_scheme: dict[str, list[dict]] = {n: [] for n in scheme_names}
@@ -255,12 +246,7 @@ def main():
                                    two_phase=False, consistency=False),
             "MPTCP-style":    dict(decision=mptcp_style_decision_fn(test_topo, test_loads),
                                    two_phase=False, consistency=False),
-            "Pure-DRL":       dict(decision=dqn_decision_fn(dqn_out["model"], test_topo,
-                                                              test_loads, dqn_out["device"]),
-                                   two_phase=False, consistency=False),
-            "Ours-Lyap":      dict(decision=_lyap_online_decision_fn(lyap_traj),
-                                   two_phase=True, consistency=True),
-            "Ours-IL":        dict(decision=_il_decision_fn(il_model, test_topo, test_loads),
+            "Ours":           dict(decision=_il_decision_fn(il_model, test_topo, test_loads),
                                    two_phase=True, consistency=True),
         }
 
@@ -326,7 +312,7 @@ def main():
             "lyap_traj": lyap_trajs[0],
             "opt_info": opt_info_first,
             "il_history": il_out["history"],
-            "dqn_history": dqn_out["history"],
+            "dqn_history": None,  # Pure-DRL 已从对比方案中移除
             # 主图用单种子的 results（保留原 plot_figures 的 API 兼容）
             "results": {n: results_by_scheme[n][0] for n in scheme_names},
             "summaries": {n: summaries_by_scheme[n][0] for n in scheme_names},

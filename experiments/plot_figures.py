@@ -27,9 +27,11 @@ COLOR_MAP = {
     "Reactive": "#888888",
     "Max-Visibility": "#4477AA",
     "MPTCP-style": "#EE6677",
+    "Ours": "#228833",
+    # 兼容旧 pkl: 保留键以便老数据加载也能着色
     "Pure-DRL": "#CCBB44",
     "Ours-Lyap": "#228833",
-    "Ours-IL": "#AA3377",
+    "Ours-IL": "#228833",
 }
 
 
@@ -110,8 +112,10 @@ def fig4_loss_rate_timeseries(data, fp: Path):
         if len(t) == 0:
             continue
         ax.plot(t, rate * 100, label=name, color=COLOR_MAP.get(name), lw=1.2)
-    # 标记切换瞬间
-    for name in ("Reactive", "Ours-Lyap"):
+    # 标记切换瞬间（兼容旧 pkl 中的 Ours-Lyap）
+    for name in ("Reactive", "Ours", "Ours-Lyap"):
+        if name not in data["results"]:
+            continue
         for s in data["results"][name].switches:
             ax.axvline(s.decision_at_sec, color=COLOR_MAP.get(name),
                        alpha=0.15, lw=0.6)
@@ -146,14 +150,15 @@ def fig5_e2e_latency_cdf(data, fp: Path):
 
 # --------------------------- 图6：状态迁移开销分解 ---------------------------
 def fig6_migration_overhead(data, fp: Path):
-    """对 Ours-Lyap 方案，逐次切换的 static/dynamic 字节与 sync time。"""
-    swrec = data["results"]["Ours-Lyap"].switches
+    """对 Ours 方案，逐次切换的 static/dynamic 字节与 sync time。"""
+    ours_key = "Ours" if "Ours" in data["results"] else "Ours-Lyap"
+    swrec = data["results"][ours_key].switches
     if not swrec:
         # 没有切换时画占位提示
         fig, ax = plt.subplots(figsize=(6, 4))
         ax.text(0.5, 0.5, "No handoffs in test scenario",
                 ha="center", va="center", transform=ax.transAxes)
-        ax.set_title("Fig.6 Migration overhead (Ours-Lyap)")
+        ax.set_title(f"Fig.6 Migration overhead ({ours_key})")
         plt.savefig(fp); plt.close()
         return
     idx = np.arange(len(swrec))
@@ -168,7 +173,7 @@ def fig6_migration_overhead(data, fp: Path):
                                          for o in outcomes])
     ax1.axhline(500, color="red", ls="--", lw=1, label="T_phys = 500ms")
     ax1.set_ylabel("Sync time (ms)")
-    ax1.set_title("Fig.6 Migration overhead per handoff (Ours-Lyap)")
+    ax1.set_title(f"Fig.6 Migration overhead per handoff ({ours_key})")
     ax1.legend()
     ax2.bar(idx, mig, color="#228833", label="migrated")
     ax2.bar(idx, drop, bottom=mig, color="#EE6677", label="dropped")
