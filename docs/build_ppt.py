@@ -339,7 +339,112 @@ def slide_09():
 # 10 详细原理③：IL
 # =========================================================
 def slide_10():
-    image_slide('10_principle_lyapunov.png', '10_principle_lyapunov.png')
+    fig, ax = new_slide()
+    header(ax, '详细原理②：drift-plus-penalty 在线决策')
+
+    # === 左 1：长期平均最小化 + 切换预算约束 ===
+    title_panel(ax, 4, 60, 46, 24,
+                '1) 长期平均最小化  +  切换预算约束',
+                color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(5.5, 78,
+            r'$\min\;\bar c\;=\;\lim_{T\to\infty}\frac{1}{T}\sum_{t=0}^{T-1} c(t)$,'
+            r'   s.t.   $\bar s_{\mathrm{sw}}\;\leq\;C_{\max}$',
+            fontsize=11.5, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 73,
+            r'$\bar s_{\mathrm{sw}}$：单位时间切换次数的长期平均；',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 69.5,
+            r'$C_{\max}$：硬性预算上界。',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 64,
+            '· 只追求每步代价最小 → 会频繁切换；\n'
+            '· 直接硬限切换次数 → 变成离线整数规划，无法在线求解。',
+            fontsize=9.6, color=GRAY, va='top', linespacing=1.6, style='italic', zorder=10)
+
+    # === 左 2：虚拟队列 + Lyapunov 函数 ===
+    title_panel(ax, 4, 32, 46, 26,
+                '2) 引入"虚拟队列" — 把硬约束变软',
+                color='#c8651f', fc=LIGHT_ORANGE)
+    ax.text(5.5, 52,
+            r'$Q(t{+}1)=\max\{\,Q(t)+\mathbf{1}\{\mathrm{switch}\}-C_{\max}\Delta t,\;0\}$',
+            fontsize=11, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 46.5,
+            '把 $Q(t)$ 想成"切换次数账户"：',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 42.5,
+            '· 切了一次  →  账户 +1；每时隙固定扣除预算；',
+            fontsize=9.8, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 39,
+            '· 账户余额越大 → 算法越倾向于"这次别切"；',
+            fontsize=9.8, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 35.5,
+            '· 长时间看，账户自动收敛 → 切换率自然满足预算。',
+            fontsize=9.8, color=DARK, va='center', zorder=10)
+
+    # === 左 3：闭式决策策略 ===
+    title_panel(ax, 4, 4, 46, 26,
+                '3) drift-plus-penalty 闭式决策策略',
+                color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(5.5, 25,
+            r'$a^{*}(t)=\arg\min_a\;V\cdot c_a(t)\;+\;Q(t)\cdot\mathbf{1}\{a\neq a_{\mathrm{prev}}\}$',
+            fontsize=11, color=DARK, va='center', zorder=10)
+    ax.text(5.5, 19.5,
+            '· 每时隙 $O(N)$ 闭式比较即可，无需任何求解器；\n'
+            '· $V$ 是"代价 <-> 切换次数"的权衡参数；\n'
+            '· $V$ 大：更看重低代价、可能多切；\n'
+            '· $V$ 小：更看重少切、可能高代价。',
+            fontsize=9.6, color=DARK, va='top', linespacing=1.65, zorder=10)
+
+    # === 右上：直观含义 ===
+    title_panel(ax, 52, 56, 44, 28,
+                'drift-plus-penalty 的直观含义',
+                color=PURPLE, fc=LIGHT_PURPLE)
+    ax.text(53.5, 77,
+            '每秒选哪颗网关 = 总成本最小的那颗，总成本由两件事组成：',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 71.5,
+            r'$V\cdot c_a(t)$ ：这一步的即时代价（中断/拥塞/抖动加权）；',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 67,
+            r'$Q(t)\cdot\mathbf{1}\{a\neq a_{\mathrm{prev}}\}$ ：选它会让账户增加多少。',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 62.5,
+            '· 选上一秒同一颗 → 账户项为 0，无切换押金；',
+            fontsize=9.7, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 59,
+            '· 换一颗 → 要付一笔等于当前账户余额的切换押金。',
+            fontsize=9.7, color=DARK, va='center', zorder=10)
+
+    # === 右下：每时隙决策流程 ===
+    title_panel(ax, 52, 22, 44, 32,
+                '每时隙决策流程（O(N) 闭式）',
+                color='#c8651f', fc=LIGHT_ORANGE)
+    steps = [
+        '① 读星历预测：取出每颗候选的 $\\Delta T_i,B_i,V_i$；',
+        '② 读当前网关负载 $L_i$、上一步选的网关 $a_{\\mathrm{prev}}$；',
+        r'③ 对每个候选 $a$ 算即时代价 $c_a(t)=\alpha\cdot$中断$+\beta L+\gamma\cdot$切换；',
+        r'④ 计算总分 $s_a=V\cdot c_a + Q\cdot\mathbf{1}\{a\neq a_{\mathrm{prev}}\}$；',
+        '⑤ 选总分最小的那颗作为这一秒的网关；',
+        r'⑥ 更新账户：$Q\leftarrow\max(Q+\Delta-C_{\max}\Delta t,\,0)$。',
+    ]
+    for i, s in enumerate(steps):
+        ax.text(53.5, 45 - i*3.6, s, fontsize=9.6, color=DARK, va='center', zorder=10)
+
+    # === 右下注脚：小结 + 性能压缩成一句话 ===
+    panel(ax, 52, 4, 44, 14, fc=LIGHT_GREEN, ec='#2e7d4f', lw=1.2)
+    ax.text(53.5, 14.5,
+            '小结：',
+            fontsize=10.5, color='#2e7d4f', weight='bold', va='center', zorder=10)
+    ax.text(57, 14.5,
+            'Lyapunov 决策既是可证的次优决策，',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 11,
+            r'又为后续的模仿学习提供了完美的"专家示范"。',
+            fontsize=10, color=DARK, va='center', zorder=10)
+    ax.text(53.5, 7,
+            r'(理论上可证：长期平均代价偏离最优 $\leq B/V$。)',
+            fontsize=9.2, color=GRAY, va='center', style='italic', zorder=10)
+    save(fig, '10_principle_lyapunov.png')
 
 
 # =========================================================
